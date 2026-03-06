@@ -20,6 +20,8 @@ class UsuarioResponse(BaseModel):
     carrera_id: Optional[int]
     estado: bool
 
+    rol: Optional[str] = None
+
     class Config:
         from_attributes = True
 

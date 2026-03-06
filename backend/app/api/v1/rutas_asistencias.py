@@ -12,7 +12,7 @@ router = APIRouter()
 
 LAT_FACULTAD = -16.5048
 LON_FACULTAD = -68.1299
-RADIO_METROS = 50
+RADIO_METROS = 500
 
 @router.post("/entrada", response_model=AsistenciaResponse, status_code=status.HTTP_201_CREATED)
 def marcar_entrada(

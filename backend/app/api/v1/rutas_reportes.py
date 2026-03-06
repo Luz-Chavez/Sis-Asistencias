@@ -34,14 +34,37 @@ def subir_reporte(
         return nuevo_reporte
 
 
-@router.get("/listar", response_model=List[ReporteResponse])
+@router.get("/listar")
 def listar_reportes(
     db: Session = Depends(get_db),
     usuario_actual: Usuario = Depends(rol_requerido(["DECANO", "COORDINADOR", "DIRECTOR"]))
 ):
-    reportes = crud_reporte.obtener_reportes(db=db, carrera_id=usuario_actual.carrera_id)
-    return reportes
+    # LA REGLA DE ORO: 
+    # Si es Director, filtramos por su carrera. Si es Decano/Coord, carrera_id = None (ven todo)
+    es_director = False
+    if hasattr(usuario_actual, 'rol') and usuario_actual.rol and hasattr(usuario_actual.rol, 'nombre'):
+        es_director = (usuario_actual.rol.nombre == "DIRECTOR")
+    elif isinstance(getattr(usuario_actual, 'rol', None), str):
+        es_director = (usuario_actual.rol == "DIRECTOR")
+        
+    filtro_carrera = usuario_actual.carrera_id if es_director else None
+    
+    # El CRUD debe estar preparado para que si filtro_carrera es None, devuelva todos los reportes
+    reportes_db = crud_reporte.obtener_reportes(db=db, carrera_id=filtro_carrera)
+    
+    reportes_con_nombres = []
+    for rep in reportes_db:
+        rep_dict = rep.__dict__.copy()
+        if rep.asistencia and rep.asistencia.pasante:
+            nombres = rep.asistencia.pasante.nombres
+            apellidos = rep.asistencia.pasante.apellidos
+            rep_dict["nombre_pasante"] = f"{nombres} {apellidos}"
+        else:
+            rep_dict["nombre_pasante"] = "Pasante sin registro"
+            
+        reportes_con_nombres.append(rep_dict)
 
+    return reportes_con_nombres
 
 @router.put("/evaluar/{reporte_id}", response_model=ReporteResponse)
 def evaluar_reporte(
@@ -102,3 +125,17 @@ def descargar_reporte_pdf(
         media_type="application/pdf", 
         headers={'Content-Disposition': f'attachment; filename="{nombre_archivo}"'}
     )
+
+@router.get("/ver/{asistencia_id}")
+def ver_reporte_asistencia(
+    asistencia_id: int, 
+    db: Session = Depends(get_db),
+    # Solo el pasante necesita leer su reporte aquí
+    usuario_actual: Usuario = Depends(rol_requerido(["PASANTE"]))
+):
+    # Buscamos si ya existe un reporte para esta asistencia
+    reporte = db.query(Reporte).filter(Reporte.asistencia_id == asistencia_id).first()
+    if not reporte:
+        raise HTTPException(status_code=404, detail="No hay reporte aún.")
+    
+    return reporte

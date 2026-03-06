@@ -9,6 +9,7 @@ from app.core.security import verificar_password, crear_token_acceso
 
 from app.api.dependencias import obtener_usuario_actual, rol_requerido
 from app.models.usuario import Usuario
+from app.models.carrera import Rol
 
 router = APIRouter()
 
@@ -18,7 +19,30 @@ def registrar_usuario(usuario: UsuarioCreate, db: Session = Depends(get_db)):
     if usuario_existente:
         raise HTTPException(status_code=400, detail="El email ya está registrado")
     
-    return crud_usuario.crear_usuario(db=db, usuario=usuario)
+    # 1. Creamos el usuario en la base de datos
+    nuevo_usuario = crud_usuario.crear_usuario(db=db, usuario=usuario)
+    
+    # 2. Copiamos los datos a un diccionario
+    usuario_datos = {
+        "id": nuevo_usuario.id,
+        "nombres": nuevo_usuario.nombres,
+        "apellidos": nuevo_usuario.apellidos,
+        "email": nuevo_usuario.email,
+        "rol_id": nuevo_usuario.rol_id,
+        "carrera_id": nuevo_usuario.carrera_id,
+        "estado": nuevo_usuario.estado
+    }
+    
+    # 3. Extraemos el nombre del rol en texto
+    if nuevo_usuario.rol:
+        usuario_datos["rol"] = nuevo_usuario.rol.nombre
+    else:
+        # Por si la base de datos demora en cargar la relación
+        rol_db = db.query(Rol).filter(Rol.id == nuevo_usuario.rol_id).first()
+        usuario_datos["rol"] = rol_db.nombre if rol_db else None
+
+    # 4. Devolvemos los datos ya masticados para el frontend
+    return usuario_datos
 
 @router.post(
     "/login", 
@@ -46,10 +70,40 @@ def listar_usuarios(
     db: Session = Depends(get_db),
     usuario_actual: Usuario = Depends(rol_requerido(["DECANO", "COORDINADOR", "DIRECTOR"]))
 ):
-    carrera_id = usuario_actual.carrera_id if usuario_actual.rol.nombre == "DIRECTOR" else None
+    # 1. Filtro estricto: El Director solo ve pasantes de su misma carrera
+    es_director = False
+    if hasattr(usuario_actual, 'rol') and usuario_actual.rol and hasattr(usuario_actual.rol, 'nombre'):
+        es_director = (usuario_actual.rol.nombre == "DIRECTOR")
+    elif isinstance(getattr(usuario_actual, 'rol', None), str):
+        es_director = (usuario_actual.rol == "DIRECTOR")
+        
+    carrera_id = usuario_actual.carrera_id if es_director else None
     
-    usuarios = crud_usuario.obtener_usuarios(db=db, skip=skip, limit=limit, carrera_id=carrera_id)
-    return usuarios
+    # 2. Consultamos la base de datos
+    usuarios_db = crud_usuario.obtener_usuarios(db=db, skip=skip, limit=limit, carrera_id=carrera_id)
+    
+    # 3. Formateamos los datos para evitar el Error 500 de Pydantic (Extraemos el texto del Rol)
+    usuarios_listos = []
+    for user in usuarios_db:
+        user_dict = {
+            "id": user.id,
+            "nombres": user.nombres,
+            "apellidos": user.apellidos,
+            "email": user.email,
+            "rol_id": user.rol_id,
+            "carrera_id": user.carrera_id,
+            "estado": user.estado
+        }
+        
+        # Mapeo del rol
+        if hasattr(user, 'rol') and user.rol and hasattr(user.rol, 'nombre'):
+            user_dict["rol"] = user.rol.nombre
+        else:
+            user_dict["rol"] = "Desconocido"
+            
+        usuarios_listos.append(user_dict)
+        
+    return usuarios_listos
 
 @router.put("/editar/{usuario_id}", response_model=UsuarioResponse)
 def editar_usuario(
@@ -77,3 +131,31 @@ def desactivar_usuario(
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
         
     return usuario_borrado
+
+@router.get("/me", response_model=UsuarioResponse)
+def leer_usuario_actual(
+    usuario_actual: Usuario = Depends(obtener_usuario_actual)
+):
+    """
+    Retorna la información del usuario autenticado actualmente,
+    convirtiendo su relación de Rol a un texto simple para el frontend.
+    """
+    # 1. Copiamos los datos del usuario a un diccionario
+    usuario_datos = {
+        "id": usuario_actual.id,
+        "nombres": usuario_actual.nombres,
+        "apellidos": usuario_actual.apellidos,
+        "email": usuario_actual.email,
+        "rol_id": usuario_actual.rol_id,
+        "carrera_id": usuario_actual.carrera_id,
+        "estado": usuario_actual.estado
+    }
+    
+    # 2. Extraemos mágicamente la palabra del rol (Ej. "DIRECTOR")
+    if usuario_actual.rol:
+        usuario_datos["rol"] = usuario_actual.rol.nombre
+    else:
+        usuario_datos["rol"] = None
+        
+    # 3. Retornamos el diccionario listo y masticado para Vue
+    return usuario_datos

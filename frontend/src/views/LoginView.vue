@@ -78,14 +78,24 @@ const handleLogin = async () => {
   errorMessage.value = '';
 
   try {
-    // Intentamos iniciar sesión con Pinia
     await authStore.login(email.value, password.value);
     
-    // REDIRECCIÓN REAL AL DASHBOARD
-    router.push('/dashboard'); 
+    // --- LÍNEAS NUEVAS PARA DEPURAR (RAYOS X) ---
+    console.log("Token recibido:", authStore.token);
+    console.log("Datos del usuario en Pinia:", authStore.user);
+    
+    const rol = authStore.user?.rol;
+    console.log("El rol detectado es:", rol);
+    // --------------------------------------------
+    
+    if (rol === 'DIRECTOR' || rol === 'DECANO' || rol === 'COORDINADOR') {
+      router.push('/director'); 
+    } else {
+      router.push('/dashboard'); 
+    }
     
   } catch (error) {
-    // Si FastAPI devuelve un error (ej. contraseña incorrecta), lo mostramos
+    // ... resto de tus errores ...
     if (error.response && error.response.status === 401) {
       errorMessage.value = 'Correo o contraseña incorrectos.';
     } else {
