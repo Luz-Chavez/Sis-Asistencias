@@ -4,77 +4,90 @@ import { useAuthStore } from '../stores/auth'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
+    // Pantalla pública de quiosco (página de inicio)
     {
       path: '/',
-      redirect: '/login'
+      name: 'kiosk',
+      component: () => import('../views/KioskView.vue'),
     },
+
+    // Login — solo para usuarios NO logueados
     {
       path: '/login',
       name: 'login',
       component: () => import('../views/LoginView.vue'),
-      // requireGuest: Solo para usuarios NO logueados
-      meta: { requiresGuest: true } 
+      meta: { requiresGuest: true }
     },
+
+    // Panel del Pasante
     {
       path: '/dashboard',
       name: 'dashboard',
       component: () => import('../views/DashboardView.vue'),
-      // Solo el Pasante puede ver su propio panel
       meta: { requiresAuth: true, allowedRoles: ['PASANTE'] }
     },
+
+    // Panel del Director / Decano
     {
       path: '/director',
       name: 'director-dashboard',
       component: () => import('../views/DirectorDashboard.vue'),
-      // Autoridades permitidas en este panel
-      meta: { requiresAuth: true, allowedRoles: ['DIRECTOR', 'DECANO', 'COORDINADOR'] }
+      meta: { requiresAuth: true, allowedRoles: ['DIRECTOR', 'DECANO'] }
     },
+
+    // Gestión de usuarios (Director y Decano)
     {
       path: '/usuarios',
       name: 'admin-usuarios',
       component: () => import('../views/AdminUsuarios.vue'),
-      // Mismos permisos que el director/decano
-      meta: { requiresAuth: true, allowedRoles: ['DIRECTOR', 'DECANO', 'COORDINADOR'] }
-    }
+      meta: { requiresAuth: true, allowedRoles: ['DIRECTOR', 'DECANO'] }
+    },
+
+    // Panel del Supervisor (COORDINADOR)
+    {
+      path: '/supervisor',
+      name: 'supervisor-dashboard',
+      component: () => import('../views/SupervisorDashboard.vue'),
+      meta: { requiresAuth: true, allowedRoles: ['COORDINADOR'] }
+    },
   ]
 })
 
-// === EL GUARDIÁN DE RUTAS (Modo Moderno Vue 3) ===
+// === GUARDIÁN DE RUTAS ===
 router.beforeEach((to, from) => {
   const authStore = useAuthStore()
   const isAuthenticated = !!authStore.token
   const userRole = authStore.user?.rol
 
-  // 1. Si intenta ir al Login pero ya tiene la sesión iniciada
-  if (to.meta.requiresGuest && isAuthenticated) {
-    if (['DIRECTOR', 'DECANO', 'COORDINADOR'].includes(userRole)) {
-      return '/director' // Lo mandamos a su panel
-    }
-    return '/dashboard' // Lo mandamos al panel de pasante
+  // Helper: a qué ruta pertenece cada rol
+  const rutaPorRol = (rol) => {
+    if (rol === 'PASANTE') return '/dashboard'
+    if (rol === 'COORDINADOR') return '/supervisor'
+    if (['DIRECTOR', 'DECANO'].includes(rol)) return '/director'
+    return '/login'
   }
 
-  // 2. Si intenta entrar a una ruta protegida sin haber iniciado sesión
+  // 1. Ruta pública del quiosco — siempre accesible, sin redirección
+  if (to.name === 'kiosk') return true
+
+  // 2. Si ya está logueado e intenta ir al Login, lo mandamos a su panel
+  if (to.meta.requiresGuest && isAuthenticated) {
+    return rutaPorRol(userRole)
+  }
+
+  // 3. Ruta protegida sin sesión → al login
   if (to.meta.requiresAuth && !isAuthenticated) {
     return '/login'
   }
 
-  // 3. Si intenta entrar a una ruta protegida pero NO tiene el rol correcto
+  // 4. Ruta protegida pero con rol incorrecto → a su panel correcto
   if (to.meta.requiresAuth && to.meta.allowedRoles) {
     if (!to.meta.allowedRoles.includes(userRole)) {
-      // Lo devolvemos a su lugar correspondiente de forma silenciosa
-      if (['DIRECTOR', 'DECANO', 'COORDINADOR'].includes(userRole)) {
-        return '/director'
-      } else if (userRole === 'PASANTE') {
-        return '/dashboard'
-      } else {
-        // Si por alguna razón el rol está corrupto o no existe
-        authStore.logout()
-        return '/login'
-      }
+      return rutaPorRol(userRole)
     }
   }
 
-  // 4. Si pasa todas las pruebas de seguridad, le abrimos la puerta
+  // 5. Todo OK
   return true
 })
 
