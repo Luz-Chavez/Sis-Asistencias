@@ -8,7 +8,18 @@ from app.core.security import SECRET_KEY, ALGORITHM
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/usuarios/login")
 
-def obtener_usuario_actual(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+# ──────────────────────────────────────────────
+# Roles disponibles en el sistema:
+#   ADMINISTRADOR → acceso total, CRUD completo
+#   ENCARGADO     → ve solo los pasantes de su carrera
+#   PASANTE       → gestiona su propia asistencia y reportes
+# ──────────────────────────────────────────────
+
+
+def obtener_usuario_actual(
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)
+):
     credenciales_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="No se pudieron validar las credenciales",
@@ -21,16 +32,21 @@ def obtener_usuario_actual(token: str = Depends(oauth2_scheme), db: Session = De
             raise credenciales_exception
     except JWTError:
         raise credenciales_exception
-        
+
     usuario = db.query(Usuario).filter(Usuario.email == email).first()
     if usuario is None:
         raise credenciales_exception
     return usuario
 
+
 def rol_requerido(roles_permitidos: list[str]):
+    """
+    Decorador de seguridad.
+    Uso: Depends(rol_requerido(["ADMINISTRADOR", "ENCARGADO"]))
+    """
     def verificador_roles(usuario_actual: Usuario = Depends(obtener_usuario_actual)):
-        
-        if usuario_actual.rol.nombre not in roles_permitidos:
+        nombre_rol = getattr(usuario_actual.rol, "nombre", None)
+        if nombre_rol not in roles_permitidos:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="No tienes los permisos necesarios para realizar esta acción"

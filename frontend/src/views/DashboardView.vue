@@ -296,6 +296,6 @@ const descargarPDF = async () => {
 const cerrarSesion = () => {
   authStore.logout();
   localStorage.removeItem('asistencia_actual'); // Limpiamos la memoria del día
-  router.push('/login');
+  router.push('/');
 };
 </script>
