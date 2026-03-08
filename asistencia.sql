@@ -9,7 +9,7 @@ CREATE TABLE carreras (
 -- 2. Tabla de Roles
 CREATE TABLE roles (
     id SERIAL PRIMARY KEY,
-    nombre VARCHAR(50) UNIQUE NOT NULL -- 'DECANO', 'COORDINADOR', 'DIRECTOR', 'PASANTE'
+    nombre VARCHAR(50) UNIQUE NOT NULL -- 'ADMINISTRADOR', 'ENCARGADO', 'PASANTE'
 );
 
 -- 3. Tabla de Usuarios
@@ -64,7 +64,7 @@ CREATE TABLE reportes (
 );
 
 -- Insertar los 4 roles del sistema
-INSERT INTO roles (nombre) VALUES ('DECANO'), ('COORDINADOR'), ('DIRECTOR'), ('PASANTE');
+INSERT INTO roles (nombre) VALUES ('ADMINISTRADOR'), ('ENCARGADO'),('PASANTE');
 
 -- Insertar un par de carreras de Ciencias Sociales (puedes agregar las 5 luego)
 INSERT INTO carreras (nombre, descripcion) VALUES 
@@ -73,3 +73,5 @@ INSERT INTO carreras (nombre, descripcion) VALUES
 ('Sociología', 'Carrera de Sociología'),
 ('Trabajo Social', 'Carrera de Trabajo Social'),
 ('Antropología', 'Carrera de Antropología');
+
+ALTER TABLE asistencias ALTER COLUMN latitud_entrada DROP NOT NULL; ALTER TABLE asistencias ALTER COLUMN longitud_entrada DROP NOT NULL;

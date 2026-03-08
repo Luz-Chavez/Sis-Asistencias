@@ -5,76 +5,82 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
+      // ✅ La pantalla pública de fichaje ES la página de inicio
       path: '/',
-      redirect: '/login'
+      name: 'fichaje',
+      component: () => import('../views/FichajeView.vue'),
+      // Accesible para todos, sin restricciones
     },
     {
       path: '/login',
       name: 'login',
       component: () => import('../views/LoginView.vue'),
-      // requireGuest: Solo para usuarios NO logueados
-      meta: { requiresGuest: true } 
+      meta: { requiresGuest: true }
     },
     {
       path: '/dashboard',
       name: 'dashboard',
       component: () => import('../views/DashboardView.vue'),
-      // Solo el Pasante puede ver su propio panel
       meta: { requiresAuth: true, allowedRoles: ['PASANTE'] }
     },
     {
-      path: '/director',
-      name: 'director-dashboard',
-      component: () => import('../views/DirectorDashboard.vue'),
-      // Autoridades permitidas en este panel
-      meta: { requiresAuth: true, allowedRoles: ['DIRECTOR', 'DECANO', 'COORDINADOR'] }
+      path: '/encargado',
+      name: 'encargado-dashboard',
+      component: () => import('../views/EncargadoDashboard.vue'),
+      meta: { requiresAuth: true, allowedRoles: ['ENCARGADO'] }
+    },
+    {
+      path: '/admin',
+      name: 'admin-dashboard',
+      component: () => import('../views/AdminDashboard.vue'),
+      meta: { requiresAuth: true, allowedRoles: ['ADMINISTRADOR'] }
     },
     {
       path: '/usuarios',
       name: 'admin-usuarios',
       component: () => import('../views/AdminUsuarios.vue'),
-      // Mismos permisos que el director/decano
-      meta: { requiresAuth: true, allowedRoles: ['DIRECTOR', 'DECANO', 'COORDINADOR'] }
+      meta: { requiresAuth: true, allowedRoles: ['ADMINISTRADOR', 'ENCARGADO'] }
     }
   ]
 })
 
-// === EL GUARDIÁN DE RUTAS (Modo Moderno Vue 3) ===
-router.beforeEach((to, from) => {
+router.beforeEach((to) => {
   const authStore = useAuthStore()
   const isAuthenticated = !!authStore.token
   const userRole = authStore.user?.rol
 
-  // 1. Si intenta ir al Login pero ya tiene la sesión iniciada
+  const panelDelRol = (rol) => {
+    if (rol === 'ADMINISTRADOR') return '/admin'
+    if (rol === 'ENCARGADO')     return '/encargado'
+    if (rol === 'PASANTE')       return '/dashboard'
+    return null
+  }
+
+  // 1. Ya logueado intentando ir al login → a su panel
   if (to.meta.requiresGuest && isAuthenticated) {
-    if (['DIRECTOR', 'DECANO', 'COORDINADOR'].includes(userRole)) {
-      return '/director' // Lo mandamos a su panel
-    }
-    return '/dashboard' // Lo mandamos al panel de pasante
+    const destino = panelDelRol(userRole)
+    if (destino && destino !== to.path) return destino
+    return true
   }
 
-  // 2. Si intenta entrar a una ruta protegida sin haber iniciado sesión
+  // 2. Ruta protegida sin sesión → al login
   if (to.meta.requiresAuth && !isAuthenticated) {
-    return '/login'
+    if (to.path !== '/login') return '/login'
+    return true
   }
 
-  // 3. Si intenta entrar a una ruta protegida pero NO tiene el rol correcto
-  if (to.meta.requiresAuth && to.meta.allowedRoles) {
+  // 3. Ruta protegida con rol incorrecto → a su panel
+  if (to.meta.requiresAuth && to.meta.allowedRoles && isAuthenticated) {
     if (!to.meta.allowedRoles.includes(userRole)) {
-      // Lo devolvemos a su lugar correspondiente de forma silenciosa
-      if (['DIRECTOR', 'DECANO', 'COORDINADOR'].includes(userRole)) {
-        return '/director'
-      } else if (userRole === 'PASANTE') {
-        return '/dashboard'
-      } else {
-        // Si por alguna razón el rol está corrupto o no existe
+      const destino = panelDelRol(userRole)
+      if (destino && destino !== to.path) return destino
+      if (!destino) {
         authStore.logout()
         return '/login'
       }
     }
   }
 
-  // 4. Si pasa todas las pruebas de seguridad, le abrimos la puerta
   return true
 })
 
