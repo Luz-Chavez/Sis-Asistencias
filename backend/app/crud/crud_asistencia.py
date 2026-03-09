@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+﻿from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 from app.models.asistencia import Asistencia
 from app.schemas.asistencia_schema import AsistenciaCreate, AsistenciaUpdate
@@ -26,7 +26,7 @@ def crear_entrada(db: Session, asistencia_data: AsistenciaCreate):
 
 
 def crear_entrada_por_pasante_id(db: Session, pasante_id: int):
-    """Para fichaje público sin GPS."""
+    """Para fichaje pÃºblico sin GPS."""
     hoy = datetime.now(timezone.utc).date()
     if db.query(Asistencia).filter(
         Asistencia.pasante_id == pasante_id,
@@ -56,16 +56,15 @@ def registrar_salida(db: Session, asistencia_id: int, datos_salida: AsistenciaUp
     registro.hora_salida     = hora_actual
     registro.latitud_salida  = datos_salida.latitud_salida
     registro.longitud_salida = datos_salida.longitud_salida
-    registro.horas_trabajadas = round(
-        (hora_actual - registro.hora_entrada).total_seconds() / 3600, 2
-    )
+    horas = round((hora_actual - registro.hora_entrada).total_seconds() / 3600, 2)
+    registro.horas_trabajadas = horas if horas > 0 else 0.01
     db.commit()
     db.refresh(registro)
     return registro
 
 
 def registrar_salida_por_pasante_id(db: Session, pasante_id: int):
-    """Para fichaje público sin GPS. Retorna (registro, estado)."""
+    """Para fichaje pÃºblico sin GPS. Retorna (registro, estado)."""
     hoy = datetime.now(timezone.utc).date()
     registro = db.query(Asistencia).filter(
         Asistencia.pasante_id == pasante_id,
@@ -81,9 +80,8 @@ def registrar_salida_por_pasante_id(db: Session, pasante_id: int):
     registro.hora_salida      = hora_actual
     registro.latitud_salida   = None
     registro.longitud_salida  = None
-    registro.horas_trabajadas = round(
-        (hora_actual - registro.hora_entrada).total_seconds() / 3600, 2
-    )
+    horas = round((hora_actual - registro.hora_entrada).total_seconds() / 3600, 2)
+    registro.horas_trabajadas = horas if horas > 0 else 0.01
     db.commit()
     db.refresh(registro)
     return registro, "ok"

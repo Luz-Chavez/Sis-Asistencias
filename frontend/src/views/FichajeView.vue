@@ -293,7 +293,7 @@ const fichar = async () => {
     esError.value = true
     const detalle = error.response?.data?.detail || 'Error al conectar con el servidor.'
     const titulos = { 404: ' Usuario no encontrado', 403: 'ðŸš« Acceso no permitido', 400: '¸Aviso' }
-    mensaje.value = { titulo: titulos[error.response?.status] ?? 'âŒ Error', detalle }
+    mensaje.value = { titulo: titulos[error.response?.status] ?? '❌ Error', detalle }
   } finally {
     isLoading.value = false
   }

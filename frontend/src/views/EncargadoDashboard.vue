@@ -843,8 +843,8 @@
               <label class="block text-sm font-medium text-slate-700 mb-2">Decision</label>
               <select v-model="evaluacion.estado"
                 class="w-full border border-slate-300 rounded-lg p-3 bg-white cursor-pointer focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
-                <option value="APROBADO">âœ… Aprobar Reporte</option>
-                <option value="RECHAZADO">âŒ Rechazar Reporte</option>
+                <option value="APROBADO">✅ Aprobar Reporte</option>
+                <option value="RECHAZADO">❌ Rechazar Reporte</option>
               </select>
             </div>
             <div>
@@ -1036,7 +1036,7 @@ const enviarEvaluacion = async () => {
     })
     await cargarReportes()
     cerrarModalEvaluacion()
-    alert('âœ… Evaluacion guardada con exito')
+    alert('✅… Evaluacion guardada con exito')
   } catch {
     alert('Error al guardar la evaluacion.')
   } finally {
@@ -1080,7 +1080,7 @@ const guardarEdicion = async () => {
     await api.put(`/usuarios/editar/${pasanteSeleccionado.value.id}`, payload)
     await cargarUsuarios()
     showModalEditar.value = false
-    alert('âœ… Datos actualizados correctamente')
+    alert('✅… Datos actualizados correctamente')
   } catch (e) {
     mensajeErrorEditar.value = e.response?.data?.detail || 'Error al guardar.'
   } finally {
@@ -1103,7 +1103,7 @@ const ejecutarCambioEstado = async () => {
     }
     await cargarUsuarios()
     showModalBaja.value = false
-    alert(pasanteSeleccionado.value.estado ? 'âš ï¸ Pasante dado de baja.' : 'âœ… Pasante reactivado.')
+    alert(pasanteSeleccionado.value.estado ? 'âš ï¸ Pasante dado de baja.' : '✅… Pasante reactivado.')
   } catch (e) {
     alert(e.response?.data?.detail || 'Error al cambiar estado.')
   } finally {
@@ -1130,7 +1130,7 @@ const registrarPasante = async () => {
       rol_id: 3,
       carrera_id: authStore.user?.carrera_id
     })
-    alert('âœ… Pasante registrado exitosamente')
+    alert('✅… Pasante registrado exitosamente')
     showModalCrear.value = false
     await cargarUsuarios()
   } catch (e) {

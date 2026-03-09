@@ -1,23 +1,41 @@
+﻿import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 # Cargar variables desde .env si existe (desarrollo)
+from pathlib import Path
+
+
+def _load_simple_env(env_path: Path) -> None:
+    """Carga KEY=VALUE sin depender de python-dotenv."""
+    if not env_path.exists():
+        return
+    for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip().lstrip("\ufeff")
+        os.environ[key] = value.strip().strip('"').strip("'")
+
+
 try:
-    from pathlib import Path
     from dotenv import load_dotenv
-
-    # Intentar cargar .env desde ubicaciones comunes, sin depender del CWD
-    # - repo root:   <repo>/.env
-    # - backend dir: <repo>/backend/.env
-    here = Path(__file__).resolve()
-    repo_root = here.parents[2]
-    backend_dir = here.parents[1]
-
-    load_dotenv(dotenv_path=repo_root / '.env', override=False)
-    load_dotenv(dotenv_path=backend_dir / '.env', override=False)
 except Exception:
-    pass
+    load_dotenv = None
+
+here = Path(__file__).resolve()
+repo_root = here.parents[2]
+backend_dir = here.parents[1]
+
+if load_dotenv is not None:
+    load_dotenv(dotenv_path=repo_root / '.env', override=True)
+    load_dotenv(dotenv_path=backend_dir / '.env', override=True)
+
+# Fallback y refuerzo: siempre intentar carga manual.
+_load_simple_env(repo_root / '.env')
+_load_simple_env(backend_dir / '.env')
 
 
 
@@ -32,7 +50,7 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Sistema de Control de Asistencia - Facultad de Ciencias Sociales",
-    description="API con FastAPI, PostgreSQL y JWT para la gestión de pasantes.",
+    description="API con FastAPI, PostgreSQL y JWT para la gestiÃ³n de pasantes.",
     version="2.0.0"
 )
 
@@ -45,16 +63,17 @@ app.add_middleware(
     expose_headers=["Content-Disposition"],
 )
 
-app.include_router(rutas_usuarios.router,   prefix="/api/v1/usuarios",    tags=["Usuarios y Autenticación"])
+app.include_router(rutas_usuarios.router,   prefix="/api/v1/usuarios",    tags=["Usuarios y AutenticaciÃ³n"])
 app.include_router(rutas_asistencias.router, prefix="/api/v1/asistencias", tags=["Control de Asistencia"])
 app.include_router(rutas_reportes.router,   prefix="/api/v1/reportes",    tags=["Reportes Diarios"])
 
 
-# ──────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Al arrancar: garantizar que existan los 3 roles y un admin por defecto
-# ──────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 @app.on_event("startup")
 def inicializar_datos():
+    print(f"[startup] SMTP_HOST configurado: {bool(os.getenv('SMTP_HOST'))}; SMTP2_HOST configurado: {bool(os.getenv('SMTP2_HOST'))}")
     db: Session = SessionLocal()
     try:
         _crear_roles_si_no_existen(db)
@@ -64,7 +83,7 @@ def inicializar_datos():
 
 
 def _crear_roles_si_no_existen(db: Session):
-    """Inserta los 3 roles del sistema si todavía no están en la BD."""
+    """Inserta los 3 roles del sistema si todavÃ­a no estÃ¡n en la BD."""
     roles_requeridos = ["ADMINISTRADOR", "ENCARGADO", "PASANTE"]
     for nombre in roles_requeridos:
         if not db.query(Rol).filter(Rol.nombre == nombre).first():
@@ -75,14 +94,14 @@ def _crear_roles_si_no_existen(db: Session):
 def _crear_admin_por_defecto(db: Session):
     """
     Crea un ADMINISTRADOR inicial solo si no existe ninguno en la BD.
-    Credenciales por defecto (¡cámbialas en producción!):
+    Credenciales por defecto (Â¡cÃ¡mbialas en producciÃ³n!):
         email    : admin@facultad.edu.bo
         password : Admin1234
         username : aa00000000  (generado de 'Admin' + 'Admin' + '00000000')
     """
     rol_admin = db.query(Rol).filter(Rol.nombre == "ADMINISTRADOR").first()
     if not rol_admin:
-        return  # No debería pasar tras _crear_roles_si_no_existen
+        return  # No deberÃ­a pasar tras _crear_roles_si_no_existen
 
     ya_existe_admin = (
         db.query(Usuario)
@@ -106,10 +125,10 @@ def _crear_admin_por_defecto(db: Session):
     db.add(admin)
     db.commit()
     print("=" * 55)
-    print("  ✅ Admin por defecto creado:")
+    print("  ✅… Admin por defecto creado:")
     print("     Email    : admin@facultad.edu.bo")
     print("     Password : Admin1234")
-    print("     ⚠️  ¡Cámbiala en producción!")
+    print("     âš ï¸  Â¡CÃ¡mbiala en producciÃ³n!")
     print("=" * 55)
 
 
@@ -117,5 +136,10 @@ def _crear_admin_por_defecto(db: Session):
 def read_root():
     return {
         "estado": "Online",
-        "mensaje": "Bienvenido al Sistema de Control de Asistencia. Visita /docs para la documentación."
+        "mensaje": "Bienvenido al Sistema de Control de Asistencia. Visita /docs para la documentaciÃ³n."
     }
+
+
+
+
+

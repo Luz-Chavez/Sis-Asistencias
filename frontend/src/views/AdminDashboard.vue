@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="min-h-screen bg-slate-50 font-sans">
     
     <nav class="bg-slate-900 shadow-md">
@@ -6,7 +6,7 @@
         <div class="flex justify-between h-16 items-center">
           <div class="flex items-center gap-6">
             <h1 class="text-white font-bold text-xl hidden md:block tracking-wide">
-              Panel de Administración
+              Panel de AdministraciÃ³n
             </h1>
             <div class="flex gap-2">
               <button class="bg-white/10 text-white px-4 py-2 rounded-lg text-sm font-bold cursor-default shadow-sm border border-white/5">
@@ -16,7 +16,7 @@
               <button @click="router.push('/usuarios')"
                 class="text-slate-300 hover:bg-white/10 hover:text-white px-4 py-2 rounded-lg text-sm font-medium transition-all">
                 <svg class="w-4 h-4 inline-block mr-1.5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                Gestión de Usuarios
+                GestiÃ³n de Usuarios
               </button>
             </div>
           </div>
@@ -27,7 +27,7 @@
             </div>
             <button @click="cerrarSesion"
               class="text-sm bg-rose-600 hover:bg-rose-500 text-white px-4 py-2 rounded-lg transition-colors shadow-sm font-medium">
-              Cerrar Sesión
+              Cerrar SesiÃ³n
             </button>
           </div>
         </div>
@@ -107,7 +107,7 @@
               <tr>
                 <th class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Pasante & Fecha</th>
                 <th class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-1/3">Actividades</th>
-                <th class="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Horas</th>
+                <th class="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Horas Totales</th>
                 <th class="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Estado</th>
                 <th class="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Acciones</th>
               </tr>
@@ -128,7 +128,7 @@
                   <div class="flex flex-col items-center justify-center text-slate-400">
                     <svg class="w-16 h-16 mb-4 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     <p class="font-medium text-slate-500 text-lg">No hay reportes para mostrar</p>
-                    <p class="text-sm mt-1">Intenta cambiar los filtros o la búsqueda.</p>
+                    <p class="text-sm mt-1">Intenta cambiar los filtros o la bÃºsqueda.</p>
                   </div>
                 </td>
               </tr>
@@ -139,7 +139,7 @@
                     <span class="text-sm font-bold text-slate-800">{{ reporte.nombre_pasante || 'Pasante Desconocido' }}</span>
                     <span class="text-xs text-slate-500 mt-1 flex items-center gap-1">
                       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                      {{ reporte.creado_en ? new Date(reporte.creado_en).toLocaleDateString('es-BO') : '—' }}
+                      {{ reporte.creado_en ? new Date(reporte.creado_en).toLocaleDateString('es-BO') : 'â€”' }}
                     </span>
                   </div>
                 </td>
@@ -150,7 +150,7 @@
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-center">
                   <span class="text-sm font-bold text-slate-700 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
-                    {{ reporte.horas_trabajadas ?? '0' }} hrs
+                    {{ reporte.horas_totales ?? reporte.horas_trabajadas ?? '0' }} hrs
                   </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-center">
@@ -188,7 +188,7 @@
         <div class="px-6 py-4 bg-slate-800 flex justify-between items-center">
           <h3 class="text-lg font-bold text-white tracking-wide flex items-center gap-2">
             <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-            Evaluación de Actividades
+            EvaluaciÃ³n de Actividades
           </h3>
           <button @click="showModal = false" class="text-white/60 hover:text-white transition-colors">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -203,8 +203,8 @@
                 <p class="text-base font-bold text-slate-800">{{ reporteAEvaluar?.nombre_pasante }}</p>
               </div>
               <div class="text-right">
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Horas Registradas</p>
-                <p class="text-base font-bold text-indigo-600">{{ reporteAEvaluar?.horas_trabajadas ?? '0' }} hrs</p>
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Horas Totales Acumuladas</p>
+                <p class="text-base font-bold text-indigo-600">{{ reporteAEvaluar?.horas_totales ?? reporteAEvaluar?.horas_trabajadas ?? '0' }} hrs</p>
               </div>
             </div>
             <div>
@@ -217,12 +217,12 @@
 
           <form @submit.prevent="guardarEvaluacion" class="space-y-5">
             <div>
-              <label class="block text-sm font-bold text-slate-800 mb-3">¿Aprobar estas actividades?</label>
+              <label class="block text-sm font-bold text-slate-800 mb-3">Â¿Aprobar estas actividades?</label>
               <div class="flex gap-4">
                 <label class="flex-1 cursor-pointer">
                   <input type="radio" v-model="formEvaluacion.estado" value="APROBADO" class="peer sr-only">
                   <div class="text-center p-3 rounded-xl border-2 peer-checked:border-emerald-500 peer-checked:bg-emerald-50 text-slate-500 peer-checked:text-emerald-700 hover:bg-slate-50 transition-all">
-                    <div class="text-2xl mb-1">✅</div>
+                    <div class="text-2xl mb-1">✅…</div>
                     <div class="font-bold text-sm">Aprobar Horas</div>
                   </div>
                 </label>
@@ -238,10 +238,10 @@
 
             <div>
               <label class="block text-sm font-bold text-slate-800 mb-2">Comentarios (Opcional)</label>
-              <p class="text-xs text-slate-500 mb-2">Si rechazas el reporte, explica al pasante qué debe corregir.</p>
+              <p class="text-xs text-slate-500 mb-2">Si rechazas el reporte, explica al pasante quÃ© debe corregir.</p>
               <textarea v-model="formEvaluacion.comentarios_director" rows="3"
                 class="w-full border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-slate-800 outline-none transition-shadow text-sm"
-                placeholder="Escribe tu mensaje aquí..."></textarea>
+                placeholder="Escribe tu mensaje aquÃ­..."></textarea>
             </div>
 
             <div v-if="mensajeError" class="text-rose-700 bg-rose-50 p-3 text-sm rounded-xl border border-rose-200 flex items-center gap-2">
@@ -252,7 +252,7 @@
             <div class="flex justify-end gap-3 pt-5 border-t border-slate-100">
               <button type="button" @click="showModal = false" class="px-6 py-2.5 border border-slate-300 rounded-xl text-slate-600 font-medium hover:bg-slate-50 transition-colors">Cancelar</button>
               <button type="submit" :disabled="isSubmitting" class="px-6 py-2.5 bg-slate-800 text-white rounded-xl font-medium hover:bg-slate-900 disabled:opacity-50 transition-all shadow-md">
-                {{ isSubmitting ? 'Procesando...' : 'Confirmar Decisión' }}
+                {{ isSubmitting ? 'Procesando...' : 'Confirmar DecisiÃ³n' }}
               </button>
             </div>
           </form>
@@ -291,7 +291,7 @@ const totalAprobados  = computed(() => reportes.value.filter(r => r.estado === '
 const filteredReportes = computed(() => {
   let resultado = reportes.value
 
-  // 1. Aplicar filtro de botones (Pestañas)
+  // 1. Aplicar filtro de botones (PestaÃ±as)
   if (filtroActual.value !== 'TODOS') {
     resultado = resultado.filter(r => r.estado === filtroActual.value)
   }
@@ -337,7 +337,7 @@ const cargarReportes = async () => {
   }
 }
 
-// ── Lógica para Evaluar Reporte ──
+// â”€â”€ LÃ³gica para Evaluar Reporte â”€â”€
 const abrirModalEvaluar = (reporte) => {
   reporteAEvaluar.value = reporte
   formEvaluacion.value = {
@@ -363,7 +363,7 @@ const guardarEvaluacion = async () => {
   }
 }
 
-// ── Lógica para Descargar PDF ──
+// â”€â”€ LÃ³gica para Descargar PDF â”€â”€
 const descargarPDF = async (reporte) => {
   try {
     const response = await api.get(`/reportes/descargar/${reporte.id}`, { responseType: 'blob' })
@@ -377,7 +377,7 @@ const descargarPDF = async (reporte) => {
     link.remove()
   } catch (error) {
     console.error('Error al descargar el PDF:', error)
-    alert('Ocurrió un error al intentar descargar el documento.')
+    alert('OcurriÃ³ un error al intentar descargar el documento.')
   }
 }
 
