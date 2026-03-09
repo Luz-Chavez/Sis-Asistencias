@@ -55,25 +55,35 @@ def listar_reportes(
     reportes_con_nombres = []
     for rep in reportes_db:
         rep_dict = rep.__dict__.copy()
-        if rep.asistencia and rep.asistencia.pasante:
-            p = rep.asistencia.pasante
-            rep_dict["nombre_pasante"] = f"{p.nombres} {p.apellidos}"
+        
+        # Validar si existe la asistencia asociada para extraer datos
+        if rep.asistencia:
+            if rep.asistencia.pasante:
+                p = rep.asistencia.pasante
+                rep_dict["nombre_pasante"] = f"{p.nombres} {p.apellidos}"
+            else:
+                rep_dict["nombre_pasante"] = "Pasante sin registro"
+            
+            # Extraer y asignar las horas trabajadas al diccionario de respuesta
+            rep_dict["horas_trabajadas"] = rep.asistencia.horas_trabajadas
         else:
             rep_dict["nombre_pasante"] = "Pasante sin registro"
+            rep_dict["horas_trabajadas"] = None
+            
         reportes_con_nombres.append(rep_dict)
 
     return reportes_con_nombres
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# PUT /evaluar/{reporte_id}  —  el ENCARGADO evalúa un reporte
+# PUT /evaluar/{reporte_id}  —  ADMINISTRADOR y ENCARGADO evalúan reportes
 # ──────────────────────────────────────────────────────────────────────────────
 @router.put("/evaluar/{reporte_id}", response_model=ReporteResponse)
 def evaluar_reporte(
     reporte_id: int,
     evaluacion: ReporteEvaluar,
     db: Session = Depends(get_db),
-    usuario_actual: Usuario = Depends(rol_requerido(["ENCARGADO"]))
+    usuario_actual: Usuario = Depends(rol_requerido(["ADMINISTRADOR", "ENCARGADO"]))
 ):
     reporte_actualizado = crud_reporte.evaluar_reporte(
         db=db,

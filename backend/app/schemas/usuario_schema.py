@@ -40,3 +40,5 @@ class UsuarioUpdate(BaseModel):
     email: Optional[EmailStr] = None
     carrera_id: Optional[int] = None
     estado: Optional[bool] = None
+    password: Optional[str] = None  # Agregado para permitir cambio de clave
+    rol_id: Optional[int] = None    # Agregado para permitir cambio de rol

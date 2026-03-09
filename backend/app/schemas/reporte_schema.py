@@ -18,8 +18,8 @@ class ReporteResponse(BaseModel):
     estado: str
     comentarios_director: Optional[str] = None
     creado_en: datetime
-
     nombre_pasante: Optional[str] = None
+    horas_trabajadas: Optional[float] = None  # <-- ¡Agrega esta línea!
 
     class Config:
         from_attributes = True
