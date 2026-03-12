@@ -1,6 +1,8 @@
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from app.models.asistencia import Reporte, Asistencia
 from app.models.usuario import Usuario
+from app.models.reporte_historial import ReporteEstadoHistorial
 from app.schemas.reporte_schema import ReporteCreate, ReporteEvaluar
 
 def crear_reporte(db: Session, reporte: ReporteCreate):
@@ -14,18 +16,75 @@ def crear_reporte(db: Session, reporte: ReporteCreate):
     db.refresh(db_reporte)
     return db_reporte
 
-def obtener_reportes(db: Session, carrera_id: int = None):
-    query = db.query(Reporte)
-    if carrera_id:
-        query = query.join(Asistencia).join(Usuario).filter(Usuario.carrera_id == carrera_id)
-    return query.all()
+# def obtener_reportes(db: Session, carrera_id: int = None):
+#     query = db.query(Reporte)
+#     if carrera_id:
+#         query = query.join(Asistencia).join(Usuario).filter(Usuario.carrera_id == carrera_id)
+#     return query.all()
 
-def evaluar_reporte(db: Session, reporte_id: int, evaluacion: ReporteEvaluar, revisado_por_id: int):
+# def evaluar_reporte(db: Session, reporte_id: int, evaluacion: ReporteEvaluar, revisado_por_id: int):
+#     db_reporte = db.query(Reporte).filter(Reporte.id == reporte_id).first()
+#     if db_reporte:
+#         db_reporte.estado = evaluacion.estado
+#         db_reporte.comentarios_director = evaluacion.comentarios_director
+#         db_reporte.revisado_por = revisado_por_id
+#         db.commit()
+#         db.refresh(db_reporte)
+#     return db_reporte
+
+
+# MODIFICADO ------------
+def obtener_reportes(db: Session, carrera_id: int = None):
+    query = (
+        db.query(Reporte)
+        .join(Asistencia, Reporte.asistencia_id == Asistencia.id)
+        .join(Usuario,    Asistencia.pasante_id  == Usuario.id)
+    )
+
+    if carrera_id is not None:
+        query = query.filter(Usuario.carrera_id == carrera_id)
+
+    return query.order_by(Reporte.creado_en.desc()).all()
+
+
+# MODIFICADO --------------
+def evaluar_reporte(db: Session, reporte_id: int, estado: str, comentarios: str = None, revisado_por: int = None):
     db_reporte = db.query(Reporte).filter(Reporte.id == reporte_id).first()
     if db_reporte:
-        db_reporte.estado = evaluacion.estado
-        db_reporte.comentarios_director = evaluacion.comentarios_director
-        db_reporte.revisado_por = revisado_por_id
+        estado_norm = (estado or "").strip().upper()
+        now = datetime.now(timezone.utc)
+        estado_anterior = (db_reporte.estado or "").strip().upper() if db_reporte.estado is not None else None
+
+        db_reporte.estado = estado_norm
+        db_reporte.comentarios_director = comentarios
+
+        # Nota: el control de permisos/rol se hace en la ruta.
+        if estado_norm == "VERIFICADO":
+            db_reporte.verificado_por = revisado_por
+            db_reporte.verificado_en = now
+            # limpiar aprobación previa si existía
+            db_reporte.aprobado_por = None
+            db_reporte.aprobado_en = None
+        elif estado_norm == "APROBADO":
+            db_reporte.aprobado_por = revisado_por
+            db_reporte.aprobado_en = now
+        elif estado_norm == "RECHAZADO":
+            # Si se rechaza en cualquier nivel, se registra quién lo hizo
+            if db_reporte.verificado_por is None:
+                db_reporte.verificado_por = revisado_por
+                db_reporte.verificado_en = now
+            else:
+                db_reporte.aprobado_por = revisado_por
+                db_reporte.aprobado_en = now
+        if revisado_por is not None and comentarios is not None:
+            db.add(ReporteEstadoHistorial(
+                reporte_id=db_reporte.id,
+                estado_anterior=estado_anterior,
+                estado_nuevo=estado_norm,
+                comentarios=str(comentarios),
+                actor_id=revisado_por,
+            ))
+
         db.commit()
         db.refresh(db_reporte)
     return db_reporte

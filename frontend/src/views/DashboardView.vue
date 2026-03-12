@@ -1,301 +1,382 @@
-<template>
-  <div class="min-h-screen bg-gray-50">
-    <nav class="bg-blue-600 shadow-md">
+﻿<template>
+  <div class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16 items-center">
-          <div class="flex-shrink-0 flex items-center">
-            <h1 class="text-white font-bold text-xl">Sistema de Asistencia</h1>
-          </div>
           <div class="flex items-center gap-4">
-            <span class="text-blue-100 text-sm hidden md:block">
-              Hola, {{ authStore.user?.nombres }}
-            </span>
-            <button 
-              @click="cerrarSesion" 
-              class="text-sm bg-blue-700 text-white px-4 py-2 rounded-md hover:bg-blue-800 transition-colors shadow"
+            <div class="w-11 h-11 rounded-xl flex items-center justify-center shadow-md bg-white/95 border border-white/50 ring-1 ring-slate-200 overflow-hidden">
+              <img
+                v-if="authStore.user?.carrera_logo_url"
+                :src="resolveStaticUrl(authStore.user.carrera_logo_url)"
+                alt="Logo carrera"
+                class="w-full h-full object-contain p-1"
+              />
+              <span v-else class="text-emerald-900 font-bold text-xs">UMSA</span>
+            </div>
+            <div class="hidden md:block border-l border-slate-300 pl-4">
+              <p class="text-xs text-slate-500 font-medium uppercase tracking-wider">Facultad de Ciencias Sociales</p>
+              <p class="text-sm font-bold text-slate-800">Sistema de Pasantias</p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <div class="hidden sm:flex items-center gap-3 px-3 py-1.5 bg-slate-50 rounded-lg">
+              <button @click="router.push('/perfil')" title="Perfil"
+                class="w-8 h-8 bg-emerald-900 rounded-full flex items-center justify-center text-white font-semibold text-xs hover:bg-emerald-800 transition-colors">
+                {{ iniciales }}
+              </button>
+              <div class="text-right">
+                <p class="text-xs font-semibold text-slate-700">{{ authStore.user?.nombres }} {{ authStore.user?.apellidos }}</p>
+                <p class="text-xs text-slate-400 font-mono">{{ authStore.user?.username }}</p>
+              </div>
+            </div>
+
+            <button
+              @click="router.push('/reporte-pdf')"
+              class="hidden sm:inline-flex items-center gap-2 text-sm text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 px-3 py-2 rounded-lg transition-colors"
+              title="Reporte PDF"
             >
-              Cerrar Sesión
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+              <span>Reporte PDF</span>
+            </button>
+
+            <button
+              @click="cerrarSesion"
+              class="flex items-center gap-2 text-sm text-slate-600 hover:text-red-600 transition-colors px-3 py-2 rounded-lg"
+              title="Salir"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+              </svg>
+              <span class="hidden sm:inline">Salir</span>
             </button>
           </div>
         </div>
       </div>
-    </nav>
+    </header>
 
-    <main class="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8 space-y-6">
-      
-      <div class="bg-white rounded-lg shadow px-5 py-6 sm:px-6">
-        <h2 class="text-2xl font-bold text-gray-800">Panel del Pasante</h2>
-        <p class="text-gray-600 mt-1">Gestiona tu asistencia y reportes diarios.</p>
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      <div v-if="alerta20h" class="bg-amber-50 border border-amber-200 rounded-2xl p-5 text-amber-900 flex items-start justify-between gap-4">
+        <div>
+          <p class="text-xs font-extrabold uppercase tracking-widest text-amber-700">Aviso</p>
+          <p class="mt-1 text-sm font-bold">Te faltan {{ progreso.horas_restantes }} horas para terminar la pasantia.</p>
+          <p class="mt-1 text-xs text-amber-800">Completa tus horas y asegurate de que tus reportes esten validados.</p>
+        </div>
+        <div class="text-right">
+          <p class="text-xs text-amber-700 font-bold">Meta: {{ progreso.meta_horas }}h</p>
+          <p class="text-xs text-amber-700 font-bold">Total: {{ progreso.total_horas }}h</p>
+        </div>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        
-        <div class="bg-white rounded-lg shadow px-5 py-6 sm:px-6 border-t-4 border-blue-500 flex flex-col justify-between">
+      <div class="bg-gradient-to-r from-emerald-900 via-emerald-800 to-emerald-900 rounded-2xl p-8 text-white shadow-lg">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div>
-            <h3 class="text-lg font-bold text-gray-900 mb-4 text-center">1. Registro de Entrada</h3>
-            <p class="text-sm text-gray-500 text-center mb-4">Activa tu ubicación para registrar tu llegada a la institución.</p>
-            <div class="flex flex-col gap-3">
-              <button @click="marcarConGPSReal" :disabled="isLoadingEntrada || asistenciaActualId" class="w-full flex justify-center items-center bg-gray-800 text-white py-3 px-4 rounded shadow hover:bg-gray-900 disabled:opacity-50 transition font-medium">
-                <span v-if="isLoadingEntrada">Procesando...</span>
-                <span v-else-if="asistenciaActualId">✅ Entrada Registrada</span>
-                <span v-else>📍 Usar mi GPS Real para Entrar</span>
+            <p class="text-emerald-200 text-sm font-medium uppercase tracking-wider mb-1">Bienvenido</p>
+            <h1 class="text-3xl font-bold mb-2">{{ authStore.user?.nombres }} {{ authStore.user?.apellidos }}</h1>
+            <p class="text-emerald-100 text-sm">Panel de control - Pasante</p>
+          </div>
+          <div class="flex items-center gap-4">
+            <div class="text-center px-6 py-3 bg-white/10 rounded-xl backdrop-blur-sm">
+              <p class="text-3xl font-bold">{{ stats.totalDias }}</p>
+              <p class="text-xs text-emerald-200 uppercase tracking-wider">Dias</p>
+            </div>
+            <div class="text-center px-6 py-3 bg-white/10 rounded-xl backdrop-blur-sm">
+              <p class="text-3xl font-bold">{{ stats.totalHoras }}h</p>
+              <p class="text-xs text-emerald-200 uppercase tracking-wider">Horas</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-lg hover:border-emerald-200 transition-all duration-300">
+          <p class="text-xs font-bold text-slate-500 uppercase">Reportes pendientes</p>
+          <p class="mt-2 text-3xl font-bold text-slate-800">{{ stats.reportesPendientes }}</p>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-lg hover:border-emerald-200 transition-all duration-300">
+          <p class="text-xs font-bold text-slate-500 uppercase">Reportes aprobados</p>
+          <p class="mt-2 text-3xl font-bold text-slate-800">{{ stats.reportesAprobados }}</p>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-lg hover:border-emerald-200 transition-all duration-300">
+          <p class="text-xs font-bold text-slate-500 uppercase">Porcentaje aprobado</p>
+          <p class="mt-2 text-3xl font-bold text-slate-800">{{ stats.pctAprobados }}%</p>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-lg hover:border-emerald-200 transition-all duration-300">
+          <p class="text-xs font-bold text-slate-500 uppercase">Total con reporte</p>
+          <p class="mt-2 text-3xl font-bold text-slate-800">{{ stats.totalConReporte }}</p>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+          <h2 class="text-lg font-semibold text-slate-800">Horas</h2>
+          <p class="text-sm text-slate-500">Separacion de horas registradas y validadas</p>
+        </div>
+        <div class="p-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div class="p-4 rounded-xl border border-slate-200 bg-slate-50">
+            <p class="text-xs font-bold text-slate-500 uppercase">Meta</p>
+            <p class="mt-1 text-2xl font-black text-slate-800">{{ progreso.meta_horas }}h</p>
+          </div>
+          <div class="p-4 rounded-xl border border-slate-200 bg-slate-50">
+            <p class="text-xs font-bold text-slate-500 uppercase">Total</p>
+            <p class="mt-1 text-2xl font-black text-slate-800">{{ progreso.total_horas }}h</p>
+          </div>
+          <div class="p-4 rounded-xl border border-blue-200 bg-blue-50">
+            <p class="text-xs font-bold text-blue-700 uppercase">Horas verificadas</p>
+            <p class="mt-1 text-2xl font-black text-blue-900">{{ progreso.horas_verificadas }}h</p>
+          </div>
+          <div class="p-4 rounded-xl border border-emerald-200 bg-emerald-50">
+            <p class="text-xs font-bold text-emerald-700 uppercase">Horas validadas</p>
+            <p class="mt-1 text-2xl font-black text-emerald-900">{{ progreso.horas_validadas }}h</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+          <div>
+            <h2 class="text-lg font-semibold text-slate-800">Historial</h2>
+            <p class="text-sm text-slate-500">Entradas, salidas y reportes</p>
+          </div>
+          <button
+            @click="cargarHistorial"
+            class="p-2 text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-all"
+            title="Actualizar"
+          >
+            <svg class="w-5 h-5" :class="isLoading ? 'animate-spin' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+          </button>
+        </div>
+
+        <div v-if="isLoading" class="py-16 text-center text-slate-400">
+          <svg class="animate-spin w-8 h-8 mx-auto mb-3 text-emerald-400" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+          </svg>
+          <p class="text-sm">Cargando historial...</p>
+        </div>
+
+        <div v-else-if="historial.length === 0" class="py-16 text-center text-slate-400">
+          <p class="text-sm">No hay registros aun.</p>
+        </div>
+
+        <div v-else class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-slate-100">
+            <thead class="bg-slate-50 border-b border-slate-200">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-extrabold text-slate-500 uppercase tracking-wider">Fecha</th>
+                <th class="px-6 py-3 text-left text-xs font-extrabold text-slate-500 uppercase tracking-wider">Entrada</th>
+                <th class="px-6 py-3 text-left text-xs font-extrabold text-slate-500 uppercase tracking-wider">Salida</th>
+                <th class="px-6 py-3 text-left text-xs font-extrabold text-slate-500 uppercase tracking-wider">Horas</th>
+                <th class="px-6 py-3 text-left text-xs font-extrabold text-slate-500 uppercase tracking-wider">Estado</th>
+                <th class="px-6 py-3 text-left text-xs font-extrabold text-slate-500 uppercase tracking-wider">Comentario</th>
+                <th class="px-6 py-3 text-right text-xs font-extrabold text-slate-500 uppercase tracking-wider">Accion</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-slate-100/80">
+              <tr v-for="item in historial" :key="item.id" class="hover:bg-slate-50/50">
+                <td class="px-6 py-4 text-sm text-slate-700">{{ formatFecha(item.fecha) }}</td>
+                <td class="px-6 py-4 text-sm text-slate-700 font-mono">{{ formatHora(item.hora_entrada) }}</td>
+                <td class="px-6 py-4 text-sm text-slate-700 font-mono">{{ formatHora(item.hora_salida) }}</td>
+                <td class="px-6 py-4 text-sm text-slate-700">{{ item.horas_trabajadas ?? 'â€”' }}</td>
+                <td class="px-6 py-4">
+                  <span
+                    class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold"
+                    :class="badgeClass(item.reporte?.estado || 'PENDIENTE')"
+                  >
+                    {{ item.reporte?.estado || 'PENDIENTE' }}
+                  </span>
+                </td>
+                <td class="px-6 py-4 text-sm text-slate-600 max-w-sm truncate" :title="item.reporte?.comentarios_director || ''">
+                  {{ item.reporte?.comentarios_director || 'â€”' }}
+                </td>
+                <td class="px-6 py-4 text-right">
+                  <button
+                    @click="abrirModalReporte(item)"
+                    class="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold bg-emerald-900 text-white hover:bg-emerald-800 transition-colors"
+                  >
+                    Reporte
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <transition name="modal">
+        <div v-if="showModalReporte" class="fixed inset-0 z-[999] flex items-center justify-center px-4">
+          <div class="absolute inset-0 bg-black/40" @click="showModalReporte = false"></div>
+          <div class="relative bg-white w-full max-w-xl rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/70">
+              <h3 class="text-lg font-bold text-slate-800">Reporte del dia</h3>
+              <p class="text-sm text-slate-500">
+                {{ asistenciaSeleccionada ? formatFecha(asistenciaSeleccionada.fecha) : '' }}
+              </p>
+            </div>
+            <div class="p-6 space-y-3">
+              <label class="block text-sm font-semibold text-slate-700">Actividades</label>
+              <textarea
+                v-model="actividadesModal"
+                rows="6"
+                placeholder="Describe las tareas que realizaste..."
+                class="w-full border border-slate-300 rounded-lg p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
+              />
+              <p v-if="errorModal" class="text-red-600 text-sm bg-red-50 border border-red-200 p-3 rounded-lg">
+                {{ errorModal }}
+              </p>
+            </div>
+            <div class="px-6 pb-6 flex gap-3">
+              <button
+                @click="showModalReporte = false"
+                class="flex-1 py-2.5 border border-slate-300 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                @click="guardarReporteModal"
+                :disabled="isSubmittingModal || !actividadesModal.trim()"
+                class="flex-1 py-2.5 bg-emerald-900 text-white rounded-lg text-sm font-medium hover:bg-emerald-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+              >
+                {{ isSubmittingModal ? 'Guardando...' : 'Guardar' }}
               </button>
             </div>
           </div>
-          <div v-if="mensajeEntrada" :class="[tipoMensajeEntrada, 'mt-4 p-3 rounded text-sm font-medium text-center border']">
-            {{ mensajeEntrada }}
-          </div>
         </div>
-
-        <div :class="['bg-white rounded-lg shadow px-5 py-6 sm:px-6 border-t-4 border-red-500 flex flex-col justify-between transition-opacity', !asistenciaActualId ? 'opacity-50 grayscale' : '']">
-          <div>
-            <h3 class="text-lg font-bold text-gray-900 mb-4 text-center">2. Registro de Salida</h3>
-            <p class="text-sm text-gray-500 text-center mb-4">Marca tu salida al finalizar tu jornada para calcular tus horas.</p>
-            <button @click="marcarSalida" :disabled="isLoadingSalida || !asistenciaActualId" class="w-full flex justify-center items-center bg-red-600 text-white py-3 px-4 rounded shadow hover:bg-red-700 disabled:opacity-50 transition font-medium">
-              <span v-if="isLoadingSalida">Procesando...</span>
-              <span v-else>👋 Marcar Salida con GPS</span>
-            </button>
-          </div>
-          <div v-if="mensajeSalida" class="mt-4 p-3 rounded text-sm font-medium text-center border bg-blue-50 text-blue-800 border-blue-200">
-            {{ mensajeSalida }}
-          </div>
-        </div>
-
-      </div>
-
-      <div :class="['bg-white rounded-lg shadow px-5 py-6 sm:px-6 border-t-4 border-purple-500 transition-opacity', !asistenciaActualId ? 'opacity-50 grayscale pointer-events-none' : '']">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="text-lg font-bold text-gray-900">3. Reporte de Actividades</h3>
-          
-          <span v-if="estadoReporte" :class="[
-            estadoReporte === 'APROBADO' ? 'bg-green-100 text-green-800 border-green-200' : '',
-            estadoReporte === 'RECHAZADO' ? 'bg-red-100 text-red-800 border-red-200' : '',
-            estadoReporte === 'PENDIENTE' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' : '',
-            'px-3 py-1 rounded-full text-xs font-bold border uppercase tracking-wide'
-          ]">
-            {{ estadoReporte }}
-          </span>
-        </div>
-
-        <div v-if="!asistenciaActualId" class="mb-4 text-sm text-purple-600 font-medium bg-purple-50 p-3 rounded border border-purple-100">
-          ⚠️ Debes registrar tu entrada primero para habilitar el reporte de hoy.
-        </div>
-
-        <div v-if="comentariosDirector" class="mb-4 p-4 rounded-md border-l-4" :class="estadoReporte === 'APROBADO' ? 'bg-green-50 border-green-500' : 'bg-red-50 border-red-500'">
-          <p class="text-sm font-bold text-gray-800 mb-1">👨‍💼 Comentario del Director:</p>
-          <p class="text-sm text-gray-700 italic">"{{ comentariosDirector }}"</p>
-        </div>
-        
-        <form @submit.prevent="subirReporte" class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">¿Qué actividades realizaste hoy?</label>
-            <textarea 
-              v-model="actividades" 
-              rows="4" 
-              required
-              :disabled="estadoReporte === 'APROBADO' || !asistenciaActualId"
-              :class="estadoReporte === 'APROBADO' ? 'bg-gray-100 cursor-not-allowed text-gray-600' : 'bg-white text-gray-900'"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 transition-colors"
-              placeholder="Ej. Hoy realicé el mantenimiento de la base de datos..."
-            ></textarea>
-          </div>
-          
-          <button v-if="estadoReporte !== 'APROBADO'" type="submit" :disabled="isLoadingReporte || !actividades || !asistenciaActualId" class="w-full md:w-auto px-6 py-2 bg-purple-600 text-white rounded-md shadow hover:bg-purple-700 disabled:opacity-50 transition font-medium">
-            <span v-if="isLoadingReporte">Guardando...</span>
-            <span v-else>📝 Guardar / Actualizar Reporte</span>
-          </button>
-          
-          <div v-if="mensajeReporte && estadoReporte !== 'APROBADO'" :class="[tipoMensajeReporte, 'mt-4 p-3 rounded text-sm font-medium border']">
-            {{ mensajeReporte }}
-          </div>
-
-          <div v-if="estadoReporte" class="mt-4 flex justify-center md:justify-start">
-            <button 
-              @click.prevent="descargarPDF" 
-              class="flex items-center gap-2 bg-gray-800 text-white px-6 py-2 rounded-md shadow hover:bg-gray-900 transition font-medium"
-            >
-              📄 Descargar Comprobante PDF
-            </button>
-          </div>
-        </form>
-      </div>
-
+      </transition>
     </main>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { useAuthStore } from '../stores/auth';
-import api from '../services/api';
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
+import api, { API_ORIGIN } from '../services/api'
 
-const router = useRouter();
-const authStore = useAuthStore();
+const router = useRouter()
+const authStore = useAuthStore()
 
-// --- ESTADOS ---
-const isLoadingEntrada = ref(false);
-const mensajeEntrada = ref('');
-const tipoMensajeEntrada = ref('');
+const resolveStaticUrl = (url) => {
+  if (!url) return null
+  const s = String(url)
+  if (s.startsWith('http://') || s.startsWith('https://')) return s
+  if (s.startsWith('/')) return `${API_ORIGIN}${s}`
+  return s
+}
 
-const isLoadingSalida = ref(false);
-const mensajeSalida = ref('');
+const historial = ref([])
+const isLoading = ref(true)
+const progreso = ref({ meta_horas: 240, total_horas: 0, horas_verificadas: 0, horas_validadas: 0, horas_restantes: 240 })
 
-const actividades = ref('');
-const isLoadingReporte = ref(false);
-const mensajeReporte = ref('');
-const tipoMensajeReporte = ref('');
+const showModalReporte = ref(false)
+const asistenciaSeleccionada = ref(null)
+const actividadesModal = ref('')
+const isSubmittingModal = ref(false)
+const errorModal = ref('')
+const iniciales = computed(() => {
+  const n = authStore.user?.nombres?.[0] ?? ''
+  const a = authStore.user?.apellidos?.[0] ?? ''
+  return (n + a).toUpperCase()
+})
 
-const estadoReporte = ref('');
-const comentariosDirector = ref('');
+const stats = computed(() => {
+  const conReporte = historial.value.filter(i => i.reporte).length
+  const aprobados = historial.value.filter(i => (i.reporte?.estado || '').toUpperCase() === 'APROBADO').length
+  const pendientes = historial.value.filter(i => (i.reporte?.estado || '').toUpperCase() === 'PENDIENTE').length
+  const totalHoras = Math.round(historial.value.reduce((a, i) => a + (parseFloat(i.horas_trabajadas) || 0), 0) * 10) / 10
 
-// ID DINÁMICO: Lo recuperamos de LocalStorage si el usuario recarga la página
-const asistenciaActualId = ref(localStorage.getItem('asistencia_actual') || null);
-
-// --- CARGAR DATOS AL ENTRAR A LA PANTALLA ---
-onMounted(async () => {
-  // Si tenemos un ID de asistencia guardado de hoy, buscamos si ya tiene reporte
-  if (asistenciaActualId.value) {
-    try {
-      const response = await api.get(`/reportes/ver/${asistenciaActualId.value}`);
-      actividades.value = response.data.actividades_realizadas;
-      estadoReporte.value = response.data.estado || 'PENDIENTE';
-      comentariosDirector.value = response.data.comentarios_director || '';
-    } catch (error) {
-      console.log("No hay reporte para hoy todavía.");
-    }
+  return {
+    totalDias: historial.value.length,
+    totalHoras,
+    totalConReporte: conReporte,
+    reportesPendientes: pendientes,
+    reportesAprobados: aprobados,
+    pctAprobados: conReporte > 0 ? Math.round((aprobados / conReporte) * 100) : 0,
   }
-});
+})
 
-// --- FUNCIONES DE ENTRADA ---
-const enviarAsistencia = async (lat, lon) => {
-  isLoadingEntrada.value = true;
-  mensajeEntrada.value = '';
+const alerta20h = computed(() => {
+  const restante = Number(progreso.value?.horas_restantes ?? 0)
+  return restante > 0 && restante <= 20
+})
+
+const formatFecha = (dt) => {
+  if (!dt) return 'â€”'
+  return new Date(dt).toLocaleDateString('es-BO', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
+const formatHora = (dt) => {
+  if (!dt) return 'â€”'
+  return new Date(dt).toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit' })
+}
+
+const badgeClass = (estado) => {
+  const e = String(estado || 'PENDIENTE').toUpperCase()
+  if (e === 'APROBADO') return 'bg-emerald-100 text-emerald-700'
+  if (e === 'VERIFICADO') return 'bg-blue-100 text-blue-700'
+  if (e === 'RECHAZADO') return 'bg-rose-100 text-rose-700'
+  return 'bg-amber-100 text-amber-700'
+}
+
+const cargarHistorial = async () => {
+  isLoading.value = true
   try {
-    // USAMOS EL ID REAL DEL USUARIO LOGUEADO
-    const payload = { pasante_id: authStore.user?.id, latitud_entrada: lat, longitud_entrada: lon };
-    const response = await api.post('/asistencias/entrada', payload);
-    
-    // CAPTURAMOS EL ID QUE NOS DEVUELVE EL BACKEND PARA ESTA ASISTENCIA
-    // Dependiendo de cómo lo devuelva tu backend (response.data.id o response.data.asistencia.id)
-    const nuevoId = response.data.id || response.data.asistencia?.id;
-    
-    if (nuevoId) {
-      asistenciaActualId.value = nuevoId;
-      localStorage.setItem('asistencia_actual', nuevoId); // Lo guardamos por si refresca la página
-    }
-
-    tipoMensajeEntrada.value = response.data.esta_en_facultad ? 'bg-green-100 text-green-800 border-green-400' : 'bg-yellow-100 text-yellow-800 border-yellow-400';
-    mensajeEntrada.value = response.data.mensaje_alerta || 'Entrada registrada exitosamente.';
-
-  } catch (error) {
-    tipoMensajeEntrada.value = 'bg-red-100 text-red-800 border-red-400';
-    if (error.response && error.response.status === 401) {
-      alert("Tu sesión ha expirado por seguridad.");
-      cerrarSesion();
-    } else if (error.response && error.response.status === 400) {
-      mensajeEntrada.value = '⚠️ Ya tienes un registro de entrada para el día de hoy.';
-    } else {
-      mensajeEntrada.value = 'Error al conectar con el servidor.';
-    }
+    const { data } = await api.get('/asistencias/mis-asistencias')
+    historial.value = data
+    const pr = await api.get('/asistencias/mi-progreso')
+    progreso.value = pr.data} catch (e) {
+    if (e.response?.status === 401) cerrarSesion()
   } finally {
-    isLoadingEntrada.value = false;
+    isLoading.value = false
   }
-};
+}
+}
+}
 
-const marcarConGPSReal = () => {
-  if (!navigator.geolocation) {
-    tipoMensajeEntrada.value = 'bg-red-100 text-red-800 border-red-400';
-    mensajeEntrada.value = 'Tu navegador no soporta geolocalización.';
-    return;
-  }
-  isLoadingEntrada.value = true;
-  mensajeEntrada.value = 'Obteniendo tu ubicación satelital...';
-  tipoMensajeEntrada.value = 'bg-blue-100 text-blue-800 border-blue-400';
-  
-  navigator.geolocation.getCurrentPosition(
-    (position) => enviarAsistencia(position.coords.latitude, position.coords.longitude),
-    (error) => {
-      isLoadingEntrada.value = false;
-      tipoMensajeEntrada.value = 'bg-red-100 text-red-800 border-red-400';
-      mensajeEntrada.value = 'No pudimos acceder a tu GPS. Verifica los permisos de tu navegador.';
-    }
-  );
-};
+const abrirModalReporte = (asistencia) => {
+  asistenciaSeleccionada.value = asistencia
+  actividadesModal.value = asistencia.reporte?.actividades_realizadas || ''
+  errorModal.value = ''
+  showModalReporte.value = true
+}
 
-// --- FUNCIÓN DE SALIDA ---
-const marcarSalida = async () => {
-  if (!asistenciaActualId.value) return;
-  
-  // Obtenemos el GPS para la salida
-  navigator.geolocation.getCurrentPosition(async (position) => {
-    isLoadingSalida.value = true;
-    mensajeSalida.value = '';
-    try {
-      const payload = { latitud_salida: position.coords.latitude, longitud_salida: position.coords.longitude };
-      const response = await api.put(`/asistencias/salida/${asistenciaActualId.value}`, payload);
-      mensajeSalida.value = `¡Salida registrada! Has trabajado ${response.data.horas_trabajadas} horas hoy.`;
-      
-      // Opcional: Limpiamos el localStorage si la jornada terminó totalmente
-      // localStorage.removeItem('asistencia_actual');
-      
-    } catch (error) {
-      mensajeSalida.value = 'Error al registrar la salida o ya fue marcada.';
-    } finally {
-      isLoadingSalida.value = false;
-    }
-  });
-};
+const guardarReporteModal = async () => {
+  if (!asistenciaSeleccionada.value) return
+  if (!actividadesModal.value.trim()) return
 
-// --- FUNCIÓN DE REPORTE ---
-const subirReporte = async () => {
-  if (!asistenciaActualId.value) return;
-  
-  isLoadingReporte.value = true;
-  mensajeReporte.value = '';
+  isSubmittingModal.value = true
+  errorModal.value = ''
   try {
-    const payload = { asistencia_id: asistenciaActualId.value, actividades_realizadas: actividades.value, archivo_adjunto_url: "" };
-    await api.post('/reportes/subir', payload);
-    tipoMensajeReporte.value = 'bg-green-100 text-green-800 border-green-400';
-    mensajeReporte.value = '¡Reporte guardado exitosamente!';
-    estadoReporte.value = 'PENDIENTE';
-  } catch (error) {
-    tipoMensajeReporte.value = 'bg-red-100 text-red-800 border-red-400';
-    mensajeReporte.value = error.response?.data?.detail || 'Error al procesar el reporte.';
+    await api.post('/reportes/subir', {
+      asistencia_id: asistenciaSeleccionada.value.id,
+      actividades_realizadas: actividadesModal.value.trim(),
+    })
+    showModalReporte.value = false
+    await cargarHistorial()
+  } catch (e) {
+    errorModal.value = e.response?.data?.detail || 'Error al guardar el reporte.'
   } finally {
-    isLoadingReporte.value = false;
+    isSubmittingModal.value = false
   }
-};
+}
 
-// --- FUNCIÓN PARA DESCARGAR EL PDF ---
-const descargarPDF = async () => {
-  if (!asistenciaActualId.value) return;
-
-  try {
-    const response = await api.get(`/reportes/descargar/${asistenciaActualId.value}`, { responseType: 'blob' });
-    let nombreArchivo = 'ReporteDiario_Asistencia.pdf';
-    const disposition = response.headers['content-disposition'];
-    if (disposition && disposition.includes('filename=')) {
-      nombreArchivo = disposition.split('filename=')[1].replace(/["']/g, '');
-    }
-    const url = window.URL.createObjectURL(new Blob([response.data]));
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', nombreArchivo); 
-    document.body.appendChild(link);
-    link.click();
-    link.parentNode.removeChild(link);
-    window.URL.revokeObjectURL(url);
-  } catch (error) {
-    console.error("Error al descargar:", error);
-    alert("Hubo un problema al descargar el comprobante. Revisa la consola.");
-  }
-};
-
-// --- CERRAR SESIÓN ---
 const cerrarSesion = () => {
-  authStore.logout();
-  localStorage.removeItem('asistencia_actual'); // Limpiamos la memoria del día
-  router.push('/login');
-};
+  authStore.logout()
+  router.push('/')
+}
+
+onMounted(cargarHistorial)
 </script>
+
+<style scoped>
+.modal-enter-active, .modal-leave-active { transition: opacity 0.2s ease, transform 0.2s ease; }
+.modal-enter-from, .modal-leave-to       { opacity: 0; transform: scale(0.97); }
+</style>
+
+
+

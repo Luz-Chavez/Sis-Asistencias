@@ -8,4 +8,9 @@ export default defineConfig({
     vue(),
     tailwindcss(),
   ],
+  server: {
+    hmr: {
+      overlay: false // avoid stale parse errors blocking the view
+    }
+  }
 })

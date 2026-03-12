@@ -3,13 +3,14 @@ CREATE TABLE carreras (
     id SERIAL PRIMARY KEY,
     nombre VARCHAR(100) UNIQUE NOT NULL,
     descripcion TEXT,
+    logo_url VARCHAR(255),
     estado BOOLEAN DEFAULT TRUE
 );
 
 -- 2. Tabla de Roles
 CREATE TABLE roles (
     id SERIAL PRIMARY KEY,
-    nombre VARCHAR(50) UNIQUE NOT NULL -- 'DECANO', 'COORDINADOR', 'DIRECTOR', 'PASANTE'
+    nombre VARCHAR(50) UNIQUE NOT NULL -- 'ADMINISTRADOR', 'ENCARGADO', 'PASANTE'
 );
 
 -- 3. Tabla de Usuarios
@@ -18,7 +19,11 @@ CREATE TABLE usuarios (
     nombres VARCHAR(100) NOT NULL,
     apellidos VARCHAR(100) NOT NULL,
     carnet_identidad VARCHAR(20) UNIQUE NOT NULL,
+    ru VARCHAR(30),
+    unidad_asignada VARCHAR(150),
+    username VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
+    celular VARCHAR(20) NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     rol_id INT REFERENCES roles(id),
     carrera_id INT REFERENCES carreras(id) ON DELETE SET NULL, -- Null para Decano/Coordinador
@@ -64,12 +69,14 @@ CREATE TABLE reportes (
 );
 
 -- Insertar los 4 roles del sistema
-INSERT INTO roles (nombre) VALUES ('DECANO'), ('COORDINADOR'), ('DIRECTOR'), ('PASANTE');
+INSERT INTO roles (nombre) VALUES ('ADMINISTRADOR'), ('ENCARGADO'),('PASANTE');
 
 -- Insertar un par de carreras de Ciencias Sociales (puedes agregar las 5 luego)
 INSERT INTO carreras (nombre, descripcion) VALUES 
-('Antropolog´´a', 'Carrera de Sociología'),
+('Antropologia', 'Carrera de Sociología'),
 ('Sociología', 'Carrera de Sociología'),
 ('Sociología', 'Carrera de Sociología'),
 ('Trabajo Social', 'Carrera de Trabajo Social'),
 ('Antropología', 'Carrera de Antropología');
+
+ALTER TABLE asistencias ALTER COLUMN latitud_entrada DROP NOT NULL; ALTER TABLE asistencias ALTER COLUMN longitud_entrada DROP NOT NULL;
