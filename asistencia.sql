@@ -73,10 +73,10 @@ INSERT INTO roles (nombre) VALUES ('ADMINISTRADOR'), ('ENCARGADO'),('PASANTE');
 
 -- Insertar un par de carreras de Ciencias Sociales (puedes agregar las 5 luego)
 INSERT INTO carreras (nombre, descripcion) VALUES 
-('Antropologia', 'Carrera de Sociología'),
+('Antropologia', 'Carrera de Antropología'),
 ('Sociología', 'Carrera de Sociología'),
 ('Sociología', 'Carrera de Sociología'),
 ('Trabajo Social', 'Carrera de Trabajo Social'),
-('Antropología', 'Carrera de Antropología');
+('Comunicación Social', 'Carrera de Comunicación Social');
 
 ALTER TABLE asistencias ALTER COLUMN latitud_entrada DROP NOT NULL; ALTER TABLE asistencias ALTER COLUMN longitud_entrada DROP NOT NULL;

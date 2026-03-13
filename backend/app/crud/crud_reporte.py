@@ -48,43 +48,62 @@ def obtener_reportes(db: Session, carrera_id: int = None):
 
 
 # MODIFICADO --------------
-def evaluar_reporte(db: Session, reporte_id: int, estado: str, comentarios: str = None, revisado_por: int = None):
+def evaluar_reporte(db: Session, reporte_id: int, estado: str, comentarios: str, revisado_por: int):
     db_reporte = db.query(Reporte).filter(Reporte.id == reporte_id).first()
     if db_reporte:
         estado_norm = (estado or "").strip().upper()
         now = datetime.now(timezone.utc)
-        estado_anterior = (db_reporte.estado or "").strip().upper() if db_reporte.estado is not None else None
+        estado_anterior = (db_reporte.estado or "").strip().upper() if db_reporte.estado else None
 
         db_reporte.estado = estado_norm
         db_reporte.comentarios_director = comentarios
 
-        # Nota: el control de permisos/rol se hace en la ruta.
         if estado_norm == "VERIFICADO":
             db_reporte.verificado_por = revisado_por
             db_reporte.verificado_en = now
-            # limpiar aprobación previa si existía
             db_reporte.aprobado_por = None
             db_reporte.aprobado_en = None
         elif estado_norm == "APROBADO":
             db_reporte.aprobado_por = revisado_por
             db_reporte.aprobado_en = now
         elif estado_norm == "RECHAZADO":
-            # Si se rechaza en cualquier nivel, se registra quién lo hizo
             if db_reporte.verificado_por is None:
                 db_reporte.verificado_por = revisado_por
                 db_reporte.verificado_en = now
             else:
                 db_reporte.aprobado_por = revisado_por
                 db_reporte.aprobado_en = now
-        if revisado_por is not None and comentarios is not None:
-            db.add(ReporteEstadoHistorial(
-                reporte_id=db_reporte.id,
-                estado_anterior=estado_anterior,
-                estado_nuevo=estado_norm,
-                comentarios=str(comentarios),
-                actor_id=revisado_por,
-            ))
+
+        # GUARDAR EN EL HISTORIAL (Siempre que haya un cambio de estado)
+        historial_entry = ReporteEstadoHistorial(
+            reporte_id=db_reporte.id,
+            estado_anterior=estado_anterior,
+            estado_nuevo=estado_norm,
+            comentarios=str(comentarios),
+            actor_id=revisado_por,
+        )
+        db.add(historial_entry)
 
         db.commit()
         db.refresh(db_reporte)
     return db_reporte
+
+# NUEVA FUNCIÓN: Para que el Superusuario vea la auditoría
+def obtener_historial_reporte(db: Session, reporte_id: int):
+    # Hacemos un join con Usuario para obtener el nombre de quien hizo la acción
+    historial = (
+        db.query(ReporteEstadoHistorial, Usuario.nombres, Usuario.apellidos)
+        .join(Usuario, ReporteEstadoHistorial.actor_id == Usuario.id)
+        .filter(ReporteEstadoHistorial.reporte_id == reporte_id)
+        .order_by(ReporteEstadoHistorial.creado_en.desc())
+        .all()
+    )
+    
+    # Formateamos la respuesta
+    resultado = []
+    for reg, nombres, apellidos in historial:
+        item = reg.__dict__
+        item["actor_nombre"] = f"{nombres} {apellidos}"
+        resultado.append(item)
+        
+    return resultado

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
 from typing import Optional
 from datetime import datetime
 
@@ -11,12 +11,11 @@ class ReporteEvaluar(BaseModel):
     estado: str
     comentarios_director: str
 
-    @validator("comentarios_director")
+    @field_validator("comentarios_director")
+    @classmethod
     def validar_comentario_obligatorio(cls, v):
-        if v is None:
-            raise ValueError("comentarios_director es obligatorio")
-        if not str(v).strip():
-            raise ValueError("comentarios_director es obligatorio")
+        if not v or not str(v).strip():
+            raise ValueError("El comentario es obligatorio para evaluar el reporte.")
         return str(v).strip()
 
 class ReporteResponse(BaseModel):
@@ -44,5 +43,9 @@ class ReporteHistorialItem(BaseModel):
     estado_nuevo: str
     comentarios: str
     actor_id: int
-    actor_nombre: Optional[str] = None
+    # Añadimos esto para que el frontend sepa quién hizo el cambio
+    actor_nombre: Optional[str] = None 
     creado_en: datetime
+
+    class Config:
+        from_attributes = True

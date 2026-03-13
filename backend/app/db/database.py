@@ -9,7 +9,7 @@ from sqlalchemy.orm import sessionmaker
 #   DATABASE_URL=postgresql://postgres:postgre@localhost/asistencia
 SQLALCHEMY_DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql://postgres:123456@localhost/asistencia",
+    "postgresql+psycopg://postgres:1234@localhost/sis",
 )
 
 engine_kwargs = {

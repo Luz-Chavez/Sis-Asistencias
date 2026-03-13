@@ -58,16 +58,28 @@
     </header>
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      <div v-if="alerta20h" class="bg-amber-50 border border-amber-200 rounded-2xl p-5 text-amber-900 flex items-start justify-between gap-4">
-        <div>
-          <p class="text-xs font-extrabold uppercase tracking-widest text-amber-700">Aviso</p>
-          <p class="mt-1 text-sm font-bold">Te faltan {{ progreso.horas_restantes }} horas para terminar la pasantia.</p>
-          <p class="mt-1 text-xs text-amber-800">Completa tus horas y asegurate de que tus reportes esten validados.</p>
+      
+      <div v-if="alerta20h" class="bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl p-6 text-white flex items-center justify-between gap-4 shadow-lg animate-pulse shadow-amber-500/20">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            </div>
+            <div>
+                <p class="text-xs font-black uppercase tracking-widest text-amber-100">¡Atención, ya casi terminas!</p>
+                <h3 class="mt-1 text-xl font-black">Faltan menos de {{ progreso.horas_restantes }} horas para terminar tu pasantía.</h3>
+                <p class="text-sm text-amber-50 mt-1 font-medium">Asegúrate de que todos tus reportes estén validados por tu Encargado y Aprobados por el Administrador.</p>
+            </div>
         </div>
-        <div class="text-right">
-          <p class="text-xs text-amber-700 font-bold">Meta: {{ progreso.meta_horas }}h</p>
-          <p class="text-xs text-amber-700 font-bold">Total: {{ progreso.total_horas }}h</p>
-        </div>
+      </div>
+
+      <div v-if="!authStore.user?.proyecto_nombre" class="bg-white border-2 border-emerald-500 border-dashed rounded-2xl p-6 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+          <div>
+            <h3 class="text-lg font-bold text-slate-800">¿A qué programa o proyecto perteneces?</h3>
+            <p class="text-sm text-slate-500 mt-1">Completa esta información para que aparezca en tus reportes PDF y firma.</p>
+          </div>
+          <button @click="showModalProyecto = true" class="px-6 py-2.5 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-colors shadow-sm whitespace-nowrap">
+              Registrar Proyecto
+          </button>
       </div>
 
       <div class="bg-gradient-to-r from-emerald-900 via-emerald-800 to-emerald-900 rounded-2xl p-8 text-white shadow-lg">
@@ -76,6 +88,10 @@
             <p class="text-emerald-200 text-sm font-medium uppercase tracking-wider mb-1">Bienvenido</p>
             <h1 class="text-3xl font-bold mb-2">{{ authStore.user?.nombres }} {{ authStore.user?.apellidos }}</h1>
             <p class="text-emerald-100 text-sm">Panel de control - Pasante</p>
+            <p v-if="authStore.user?.proyecto_nombre" class="mt-2 inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-800/50 border border-emerald-700/50">
+                <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                Proyecto: {{ authStore.user?.proyecto_nombre }}
+            </p>
           </div>
           <div class="flex items-center gap-4">
             <div class="text-center px-6 py-3 bg-white/10 rounded-xl backdrop-blur-sm">
@@ -97,7 +113,7 @@
         </div>
         <div class="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-lg hover:border-emerald-200 transition-all duration-300">
           <p class="text-xs font-bold text-slate-500 uppercase">Reportes aprobados</p>
-          <p class="mt-2 text-3xl font-bold text-slate-800">{{ stats.reportesAprobados }}</p>
+          <p class="mt-2 text-3xl font-bold text-emerald-600">{{ stats.reportesAprobados }}</p>
         </div>
         <div class="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-lg hover:border-emerald-200 transition-all duration-300">
           <p class="text-xs font-bold text-slate-500 uppercase">Porcentaje aprobado</p>
@@ -120,15 +136,17 @@
             <p class="mt-1 text-2xl font-black text-slate-800">{{ progreso.meta_horas }}h</p>
           </div>
           <div class="p-4 rounded-xl border border-slate-200 bg-slate-50">
-            <p class="text-xs font-bold text-slate-500 uppercase">Total</p>
+            <p class="text-xs font-bold text-slate-500 uppercase">Total Registrado</p>
             <p class="mt-1 text-2xl font-black text-slate-800">{{ progreso.total_horas }}h</p>
           </div>
-          <div class="p-4 rounded-xl border border-blue-200 bg-blue-50">
-            <p class="text-xs font-bold text-blue-700 uppercase">Horas verificadas</p>
+          <div class="p-4 rounded-xl border border-blue-200 bg-blue-50 relative overflow-hidden">
+             <div class="absolute top-0 right-0 bg-blue-200 text-blue-800 text-[9px] font-black px-2 py-0.5 rounded-bl-lg">POR ENCARGADO</div>
+            <p class="text-xs font-bold text-blue-700 uppercase">Horas Verificadas</p>
             <p class="mt-1 text-2xl font-black text-blue-900">{{ progreso.horas_verificadas }}h</p>
           </div>
-          <div class="p-4 rounded-xl border border-emerald-200 bg-emerald-50">
-            <p class="text-xs font-bold text-emerald-700 uppercase">Horas validadas</p>
+          <div class="p-4 rounded-xl border border-emerald-200 bg-emerald-50 relative overflow-hidden">
+             <div class="absolute top-0 right-0 bg-emerald-200 text-emerald-800 text-[9px] font-black px-2 py-0.5 rounded-bl-lg">POR ADMIN</div>
+            <p class="text-xs font-bold text-emerald-700 uppercase">Horas Validadas</p>
             <p class="mt-1 text-2xl font-black text-emerald-900">{{ progreso.horas_validadas }}h</p>
           </div>
         </div>
@@ -182,17 +200,17 @@
                 <td class="px-6 py-4 text-sm text-slate-700">{{ formatFecha(item.fecha) }}</td>
                 <td class="px-6 py-4 text-sm text-slate-700 font-mono">{{ formatHora(item.hora_entrada) }}</td>
                 <td class="px-6 py-4 text-sm text-slate-700 font-mono">{{ formatHora(item.hora_salida) }}</td>
-                <td class="px-6 py-4 text-sm text-slate-700">{{ item.horas_trabajadas ?? 'â€”' }}</td>
+                <td class="px-6 py-4 text-sm font-bold text-slate-700">{{ item.horas_trabajadas ?? '—' }}</td>
                 <td class="px-6 py-4">
                   <span
-                    class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold"
+                    class="inline-flex items-center px-2.5 py-1.5 border rounded-full text-[10px] font-black uppercase tracking-widest"
                     :class="badgeClass(item.reporte?.estado || 'PENDIENTE')"
                   >
                     {{ item.reporte?.estado || 'PENDIENTE' }}
                   </span>
                 </td>
                 <td class="px-6 py-4 text-sm text-slate-600 max-w-sm truncate" :title="item.reporte?.comentarios_director || ''">
-                  {{ item.reporte?.comentarios_director || 'â€”' }}
+                  {{ item.reporte?.comentarios_director || '—' }}
                 </td>
                 <td class="px-6 py-4 text-right">
                   <button
@@ -210,7 +228,7 @@
 
       <transition name="modal">
         <div v-if="showModalReporte" class="fixed inset-0 z-[999] flex items-center justify-center px-4">
-          <div class="absolute inset-0 bg-black/40" @click="showModalReporte = false"></div>
+          <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="showModalReporte = false"></div>
           <div class="relative bg-white w-full max-w-xl rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
             <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/70">
               <h3 class="text-lg font-bold text-slate-800">Reporte del dia</h3>
@@ -224,23 +242,23 @@
                 v-model="actividadesModal"
                 rows="6"
                 placeholder="Describe las tareas que realizaste..."
-                class="w-full border border-slate-300 rounded-lg p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
+                class="w-full border border-slate-300 rounded-xl p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
               />
-              <p v-if="errorModal" class="text-red-600 text-sm bg-red-50 border border-red-200 p-3 rounded-lg">
+              <p v-if="errorModal" class="text-red-600 text-sm bg-red-50 border border-red-200 p-3 rounded-lg font-medium">
                 {{ errorModal }}
               </p>
             </div>
             <div class="px-6 pb-6 flex gap-3">
               <button
                 @click="showModalReporte = false"
-                class="flex-1 py-2.5 border border-slate-300 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors"
+                class="flex-1 py-2.5 border border-slate-300 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors"
               >
                 Cancelar
               </button>
               <button
                 @click="guardarReporteModal"
                 :disabled="isSubmittingModal || !actividadesModal.trim()"
-                class="flex-1 py-2.5 bg-emerald-900 text-white rounded-lg text-sm font-medium hover:bg-emerald-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                class="flex-1 py-2.5 bg-emerald-900 text-white rounded-xl text-sm font-bold hover:bg-emerald-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
               >
                 {{ isSubmittingModal ? 'Guardando...' : 'Guardar' }}
               </button>
@@ -248,6 +266,36 @@
           </div>
         </div>
       </transition>
+
+      <transition name="modal">
+        <div v-if="showModalProyecto" class="fixed inset-0 z-[999] flex items-center justify-center px-4">
+          <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="showModalProyecto = false"></div>
+          <div class="relative bg-white w-full max-w-md rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/70">
+              <h3 class="text-lg font-bold text-slate-800">Registrar Proyecto</h3>
+              <p class="text-sm text-slate-500">Asigna el programa/proyecto al que perteneces.</p>
+            </div>
+            <div class="p-6 space-y-4">
+              <div>
+                  <label class="block text-sm font-semibold text-slate-700 mb-1.5">Nombre del Proyecto/Programa <span class="text-red-500">*</span></label>
+                  <input v-model="formProyecto.proyecto_nombre" type="text" class="w-full border border-slate-300 rounded-xl p-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="Ej: Proyecto de Grado 2026">
+              </div>
+              <div>
+                  <label class="block text-sm font-semibold text-slate-700 mb-1.5">URL de Documento de Respaldo</label>
+                  <input v-model="formProyecto.proyecto_documento_url" type="url" class="w-full border border-slate-300 rounded-xl p-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="Enlace a Google Drive o archivo PDF">
+                  <p class="text-xs text-slate-500 mt-1">Opcional: Sube el documento de tu pasantía a la nube y pega aquí el enlace.</p>
+              </div>
+            </div>
+            <div class="px-6 pb-6 flex gap-3">
+              <button @click="showModalProyecto = false" class="flex-1 py-2.5 border border-slate-300 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors">Cancelar</button>
+              <button @click="guardarProyecto" :disabled="isSubmittingProyecto || !formProyecto.proyecto_nombre.trim()" class="flex-1 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 transition-colors disabled:opacity-50">
+                Guardar
+              </button>
+            </div>
+          </div>
+        </div>
+      </transition>
+
     </main>
   </div>
 </template>
@@ -278,6 +326,11 @@ const asistenciaSeleccionada = ref(null)
 const actividadesModal = ref('')
 const isSubmittingModal = ref(false)
 const errorModal = ref('')
+
+const showModalProyecto = ref(false)
+const formProyecto = ref({ proyecto_nombre: '', proyecto_documento_url: '' })
+const isSubmittingProyecto = ref(false)
+
 const iniciales = computed(() => {
   const n = authStore.user?.nombres?.[0] ?? ''
   const a = authStore.user?.apellidos?.[0] ?? ''
@@ -300,27 +353,28 @@ const stats = computed(() => {
   }
 })
 
+// LOGICA DE ALERTA: Si faltan 20 horas o menos Y el total de horas restantes es mayor a 0
 const alerta20h = computed(() => {
   const restante = Number(progreso.value?.horas_restantes ?? 0)
   return restante > 0 && restante <= 20
 })
 
 const formatFecha = (dt) => {
-  if (!dt) return 'â€”'
+  if (!dt) return '—'
   return new Date(dt).toLocaleDateString('es-BO', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
 const formatHora = (dt) => {
-  if (!dt) return 'â€”'
+  if (!dt) return '—'
   return new Date(dt).toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit' })
 }
 
 const badgeClass = (estado) => {
   const e = String(estado || 'PENDIENTE').toUpperCase()
-  if (e === 'APROBADO') return 'bg-emerald-100 text-emerald-700'
-  if (e === 'VERIFICADO') return 'bg-blue-100 text-blue-700'
-  if (e === 'RECHAZADO') return 'bg-rose-100 text-rose-700'
-  return 'bg-amber-100 text-amber-700'
+  if (e === 'APROBADO') return 'bg-emerald-50 text-emerald-700 border-emerald-200'
+  if (e === 'VERIFICADO') return 'bg-blue-50 text-blue-700 border-blue-200'
+  if (e === 'RECHAZADO') return 'bg-rose-50 text-rose-700 border-rose-200'
+  return 'bg-amber-50 text-amber-700 border-amber-200'
 }
 
 const cargarHistorial = async () => {
@@ -329,13 +383,12 @@ const cargarHistorial = async () => {
     const { data } = await api.get('/asistencias/mis-asistencias')
     historial.value = data
     const pr = await api.get('/asistencias/mi-progreso')
-    progreso.value = pr.data} catch (e) {
+    progreso.value = pr.data
+  } catch (e) {
     if (e.response?.status === 401) cerrarSesion()
   } finally {
     isLoading.value = false
   }
-}
-}
 }
 
 const abrirModalReporte = (asistencia) => {
@@ -365,18 +418,41 @@ const guardarReporteModal = async () => {
   }
 }
 
+const guardarProyecto = async () => {
+    if(!formProyecto.value.proyecto_nombre.trim()) return;
+    isSubmittingProyecto.value = true;
+    try {
+        await api.put('/usuarios/mi-perfil', {
+            proyecto_nombre: formProyecto.value.proyecto_nombre.trim(),
+            proyecto_documento_url: formProyecto.value.proyecto_documento_url.trim() || null
+        });
+        
+        // Actualizamos el store para que se refleje de inmediato
+        authStore.user.proyecto_nombre = formProyecto.value.proyecto_nombre.trim();
+        showModalProyecto.value = false;
+        alert("✅ Proyecto registrado correctamente");
+    } catch(e) {
+        alert(e.response?.data?.detail || "Hubo un error al guardar el proyecto");
+    } finally {
+        isSubmittingProyecto.value = false;
+    }
+}
+
 const cerrarSesion = () => {
   authStore.logout()
   router.push('/')
 }
 
-onMounted(cargarHistorial)
+onMounted(() => {
+    cargarHistorial();
+    // Pre-llenar el modal del proyecto si el usuario ya tiene uno y quiere editarlo
+    if(authStore.user?.proyecto_nombre) {
+        formProyecto.value.proyecto_nombre = authStore.user.proyecto_nombre;
+    }
+})
 </script>
 
 <style scoped>
 .modal-enter-active, .modal-leave-active { transition: opacity 0.2s ease, transform 0.2s ease; }
-.modal-enter-from, .modal-leave-to       { opacity: 0; transform: scale(0.97); }
+.modal-enter-from, .modal-leave-to        { opacity: 0; transform: scale(0.97); }
 </style>
-
-
-
