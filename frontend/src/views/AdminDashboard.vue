@@ -376,17 +376,6 @@
                 <td class="px-6 py-4 whitespace-nowrap text-right">
   <div class="flex justify-end gap-3 items-center">
     
-    <button 
-      v-if="reporte.estado.toUpperCase() === 'APROBADO'" 
-      @click.stop="descargarPDF(reporte)" 
-      class="flex items-center justify-center p-2 text-red-600 bg-red-50 hover:bg-red-600 hover:text-white rounded-xl transition-all border border-red-200 shadow-sm group/pdf" 
-      title="Descargar Comprobante PDF">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17h6m-6-4h6m-6-4h3"/>
-      </svg>
-      <span class="max-w-0 overflow-hidden group-hover/pdf:max-w-xs group-hover/pdf:ml-2 transition-all duration-300 text-[10px] font-black uppercase tracking-widest">PDF</span>
-    </button>
 
     <button @click.stop="abrirHistorial(reporte)" 
       class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all border border-transparent hover:border-blue-100" 
@@ -403,6 +392,15 @@
       class="px-4 py-2 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all shadow-sm">
       {{ reporte.estado.toUpperCase() === 'VERIFICADO' ? 'Aprobar' : 'Ver' }}
     </button>
+
+      <div class="w-px h-3 bg-red-200"></div>
+      <button @click.stop="descargarPDFSemanal(reporte)" class="px-2.5 py-1.5 text-[9px] font-black uppercase tracking-widest text-red-600 hover:bg-red-600 hover:text-white rounded-lg transition-colors" title="Reporte Semanal">
+        Sem
+      </button>
+      <div class="w-px h-3 bg-red-200"></div>
+      <button @click.stop="descargarPDFMensual(reporte)" class="px-2.5 py-1.5 text-[9px] font-black uppercase tracking-widest text-red-600 hover:bg-red-600 hover:text-white rounded-lg transition-colors" title="Reporte Mensual">
+        Mes
+      </button>
 
   </div>
 </td>
@@ -719,29 +717,63 @@ const abrirHistorial = async (reporte) => {
     isLoadingHistorial.value = false
   }
 }
-const descargarPDF = async (reporte) => {
+const procesarDescarga = (data, filename) => {
+  const blob = new Blob([data], { type: 'application/pdf' });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.setAttribute('download', filename);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
+}
+
+const descargarPDFDiario = async (reporte) => {
   try {
-    const response = await api.get(`/reportes/descargar/${reporte.id}`, { 
-      responseType: 'blob' 
-    });
-    
-    const blob = new Blob([response.data], { type: 'application/pdf' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    
-    link.href = url;
-    const fecha = new Date().toISOString().slice(0, 10);
-    link.setAttribute('download', `Reporte_${reporte.nombre_pasante.replace(/\s+/g, '_')}_${fecha}.pdf`);
-    
-    document.body.appendChild(link);
-    link.click();
-    
-    // Limpieza
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
+    const response = await api.get(`/reportes/descargar/${reporte.id}`, { responseType: 'blob' });
+    const fecha = new Date(reporte.creado_en || Date.now()).toISOString().slice(0, 10);
+    procesarDescarga(response.data, `Reporte_Diario_${fecha}_${reporte.nombre_pasante.replace(/\s+/g, '_')}.pdf`);
   } catch (error) {
-    console.error('Error en descarga:', error);
-    alert('No se pudo descargar el archivo. Asegúrate de que el servidor esté activo.');
+    alert('No se pudo descargar el reporte diario.');
+  }
+}
+
+const descargarPDFSemanal = async (reporte) => {
+  try {
+    if (!reporte.pasante_id) return alert("Error: Faltan datos del pasante. Refresca la página.");
+    
+    // Calcular año y número de semana (ISO Week)
+    const date = new Date(reporte.creado_en || Date.now());
+    const anio = date.getFullYear();
+    const target = new Date(date.valueOf());
+    const dayNr = (date.getDay() + 6) % 7;
+    target.setDate(target.getDate() - dayNr + 3);
+    const firstThursday = target.valueOf();
+    target.setMonth(0, 1);
+    if (target.getDay() !== 4) target.setMonth(0, 1 + ((4 - target.getDay()) + 7) % 7);
+    const semana = 1 + Math.ceil((firstThursday - target) / 604800000);
+
+    const response = await api.get(`/reportes/admin/pdf/semanal/${reporte.pasante_id}?anio=${anio}&semana=${semana}`, { responseType: 'blob' });
+    procesarDescarga(response.data, `Reporte_Semanal_Sem${semana}_${anio}_${reporte.nombre_pasante.replace(/\s+/g, '_')}.pdf`);
+  } catch (error) {
+    alert('No se pudo descargar el reporte semanal.');
+  }
+}
+
+const descargarPDFMensual = async (reporte) => {
+  try {
+    if (!reporte.pasante_id) return alert("Error: Faltan datos del pasante. Refresca la página.");
+    
+    // Calcular año y mes
+    const date = new Date(reporte.creado_en || Date.now());
+    const anio = date.getFullYear();
+    const mes = date.getMonth() + 1; // getMonth es 0-11, sumamos 1
+
+    const response = await api.get(`/reportes/admin/pdf/mensual/${reporte.pasante_id}?anio=${anio}&mes=${mes}`, { responseType: 'blob' });
+    procesarDescarga(response.data, `Reporte_Mensual_Mes${mes}_${anio}_${reporte.nombre_pasante.replace(/\s+/g, '_')}.pdf`);
+  } catch (error) {
+    alert('No se pudo descargar el reporte mensual.');
   }
 }
 

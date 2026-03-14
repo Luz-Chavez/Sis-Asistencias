@@ -151,9 +151,11 @@ def listar_reportes(
                 horas_calc = round(max((dt_salida - dt_entrada).total_seconds() / 3600, 0), 2)
                 horas = horas_calc if horas_calc > 0 else 0.01
 
+        # (Esto está dentro del for r in reportes_db: de la ruta /listar)
         resultado.append({
             "id":                     r.id,
             "asistencia_id":          r.asistencia_id,
+            "pasante_id":             pid,    # <--- REVISA QUE ESTA LÍNEA EXISTA
             "actividades_realizadas": r.actividades_realizadas,
             "horas_trabajadas":       horas,
             "horas_totales":          round(total_horas_pasante, 2),
@@ -289,7 +291,7 @@ def descargar_pdf_semanal(
     usuario_actual: Usuario = Depends(rol_requerido(["PASANTE"]))
 ):
     primer_dia = date.fromisocalendar(anio, semana, 1)   # lunes
-    ultimo_dia = primer_dia + timedelta(days=6)           # domingo
+    ultimo_dia = primer_dia + timedelta(days=4)          # <-- MODIFICADO: viernes (solo días hábiles)
 
     asistencias = (
         db.query(AsistenciaModel)
@@ -313,6 +315,8 @@ def descargar_pdf_semanal(
         "nombres":  usuario_actual.nombres,
         "apellidos": usuario_actual.apellidos,
         "ci":       getattr(usuario_actual, "carnet_identidad", "—"),
+        "ru":       getattr(usuario_actual, "ru", "—"),
+        "unidad_asignada": getattr(usuario_actual, "unidad_asignada", "—"),
         "username": usuario_actual.username,
         "carrera":  carrera_nombre,
         "proyecto": getattr(usuario_actual, "proyecto_nombre", None),
@@ -325,7 +329,9 @@ def descargar_pdf_semanal(
 
     filas = []
     acumulado = 0.0
+    textos_semana = []
     cur = primer_dia
+    
     while cur <= ultimo_dia:
         a = asistencias_por_fecha.get(cur)
         if not a:
@@ -343,6 +349,7 @@ def descargar_pdf_semanal(
         reporte = db.query(Reporte).filter(Reporte.asistencia_id == a.id).first()
         horas_dia = float(a.horas_trabajadas) if a.horas_trabajadas else 0.0
         acumulado = acumulado + horas_dia
+        
         filas.append({
             "fecha": a.fecha.date() if hasattr(a.fecha, "date") else a.fecha,
             "hora_entrada": a.hora_entrada,
@@ -351,10 +358,18 @@ def descargar_pdf_semanal(
             "horas_acumuladas": round(acumulado, 2) if a.horas_trabajadas else round(acumulado, 2),
             "detalle": "Con reporte" if reporte else "Sin reporte",
         })
+        
+        if reporte and reporte.actividades_realizadas:
+            dia_str = cur.strftime("%d/%m")
+            textos_semana.append(f"• [{dia_str}]: {reporte.actividades_realizadas}")
+            
         cur = cur + timedelta(days=1)
 
     titulo = f"Reporte semanal · Semana {semana}: {primer_dia.strftime('%d/%m')} al {ultimo_dia.strftime('%d/%m/%Y')}"
-    buf = generar_reporte_semanal(pasante, filas, titulo)
+    
+    texto_consolidado = "\n".join(textos_semana) if textos_semana else "No se registraron reportes de actividades en esta semana."
+    
+    buf = generar_reporte_semanal(pasante, filas, titulo, texto_reporte=texto_consolidado)
 
     nombre_archivo = (
         f"Reporte_Semanal_Sem{semana}_{anio}_"
@@ -401,6 +416,8 @@ def descargar_pdf_mensual(
         "nombres":  usuario_actual.nombres,
         "apellidos": usuario_actual.apellidos,
         "ci":       getattr(usuario_actual, "carnet_identidad", "—"),
+        "ru":       getattr(usuario_actual, "ru", "—"),
+        "unidad_asignada": getattr(usuario_actual, "unidad_asignada", "—"),
         "username": usuario_actual.username,
         "carrera":  carrera_nombre,
         "proyecto": getattr(usuario_actual, "proyecto_nombre", None),
@@ -412,7 +429,115 @@ def descargar_pdf_mensual(
         asistencias_por_fecha[f] = a
 
     filas = []
+    acumulado = 0.0      # <-- NUEVO
+    textos_mes = []      # <-- NUEVO
     cur = primer_dia
+    
+    while cur <= ultimo_dia:
+        if cur.weekday() < 5:  # Solo de lunes (0) a viernes (4)
+            a = asistencias_por_fecha.get(cur)
+            if not a:
+                filas.append({
+                    "fecha": cur,
+                    "hora_entrada": None,
+                    "hora_salida": None,
+                    "horas_trabajadas": None,
+                    "horas_acumuladas": round(acumulado, 2), # <-- NUEVO
+                    "detalle": "Sin asistencia",             # <-- NUEVO
+                })
+            else:
+                reporte = db.query(Reporte).filter(Reporte.asistencia_id == a.id).first()
+                horas_dia = float(a.horas_trabajadas) if a.horas_trabajadas else 0.0
+                acumulado = acumulado + horas_dia
+                
+                filas.append({
+                    "fecha": a.fecha.date() if hasattr(a.fecha, "date") else a.fecha,
+                    "hora_entrada": a.hora_entrada,
+                    "hora_salida": a.hora_salida,
+                    "horas_trabajadas": float(a.horas_trabajadas) if a.horas_trabajadas else None,
+                    "horas_acumuladas": round(acumulado, 2) if a.horas_trabajadas else round(acumulado, 2), # <-- NUEVO
+                    "detalle": "Con reporte" if reporte else "Sin reporte", # <-- NUEVO
+                })
+                
+                # <-- NUEVO: Recopilar textos
+                if reporte and reporte.actividades_realizadas:
+                    dia_str = cur.strftime("%d/%m")
+                    textos_mes.append(f"• [{dia_str}]: {reporte.actividades_realizadas}")
+
+        cur = cur + timedelta(days=1)
+
+    meses_es = ["","Enero","Febrero","Marzo","Abril","Mayo","Junio",
+                "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"]
+    titulo = f"{meses_es[mes]} {anio}"
+    
+    # <-- NUEVO: Consolidar texto
+    texto_consolidado = "\n".join(textos_mes) if textos_mes else "No se registraron reportes de actividades en este mes."
+    
+    # <-- NUEVO: Pasar el texto_reporte a la función
+    buf = generar_reporte_mensual(pasante, filas, titulo, texto_reporte=texto_consolidado)
+
+    nombre_archivo = (
+        f"Reporte_Mensual_{meses_es[mes]}{anio}_"
+        f"{usuario_actual.nombres.split()[0]}{usuario_actual.apellidos.split()[0]}.pdf"
+    )
+    return StreamingResponse(
+        buf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{nombre_archivo}"'}
+    )
+
+# ─────────────────────────────────────────────────────────────────────────
+# GET /admin/pdf/semanal/{pasante_id} — ADMINISTRADOR y ENCARGADO
+# ─────────────────────────────────────────────────────────────────────────
+@router.get("/admin/pdf/semanal/{pasante_id}")
+def admin_descargar_pdf_semanal(
+    pasante_id: int,
+    anio: int,
+    semana: int,
+    db: Session = Depends(get_db),
+    usuario_actual: Usuario = Depends(rol_requerido(["ADMINISTRADOR", "ENCARGADO"]))
+):
+    pasante_db = db.query(Usuario).filter(Usuario.id == pasante_id).first()
+    if not pasante_db:
+        raise HTTPException(404, detail="Pasante no encontrado.")
+
+    primer_dia = date.fromisocalendar(anio, semana, 1)   # lunes
+    ultimo_dia = primer_dia + timedelta(days=4)          # viernes (solo días hábiles)
+
+    asistencias = (
+        db.query(AsistenciaModel)
+        .filter(
+            AsistenciaModel.pasante_id == pasante_db.id,
+            AsistenciaModel.fecha >= primer_dia,
+            AsistenciaModel.fecha <= ultimo_dia,
+        )
+        .order_by(AsistenciaModel.fecha)
+        .all()
+    )
+
+    carrera_nombre = pasante_db.carrera.nombre if hasattr(pasante_db, "carrera") and pasante_db.carrera else "—"
+
+    pasante_data = {
+        "nombres":  pasante_db.nombres,
+        "apellidos": pasante_db.apellidos,
+        "ci":       getattr(pasante_db, "carnet_identidad", "—"),
+        "ru":       getattr(pasante_db, "ru", "—"),
+        "unidad_asignada": getattr(pasante_db, "unidad_asignada", "—"),
+        "username": pasante_db.username,
+        "carrera":  carrera_nombre,
+        "proyecto": getattr(pasante_db, "proyecto_nombre", None),
+    }
+
+    asistencias_por_fecha = {}
+    for a in asistencias:
+        f = a.fecha.date() if hasattr(a.fecha, "date") else a.fecha
+        asistencias_por_fecha[f] = a
+
+    filas = []
+    acumulado = 0.0
+    textos_semana = []
+    cur = primer_dia
+    
     while cur <= ultimo_dia:
         a = asistencias_por_fecha.get(cur)
         if not a:
@@ -421,32 +546,138 @@ def descargar_pdf_mensual(
                 "hora_entrada": None,
                 "hora_salida": None,
                 "horas_trabajadas": None,
-                "actividades": "Sin asistencia",
-                "estado": "SIN ASISTENCIA",
+                "horas_acumuladas": round(acumulado, 2),
+                "detalle": "Sin asistencia",
             })
             cur = cur + timedelta(days=1)
             continue
 
         reporte = db.query(Reporte).filter(Reporte.asistencia_id == a.id).first()
+        horas_dia = float(a.horas_trabajadas) if a.horas_trabajadas else 0.0
+        acumulado = acumulado + horas_dia
+        
         filas.append({
             "fecha": a.fecha.date() if hasattr(a.fecha, "date") else a.fecha,
             "hora_entrada": a.hora_entrada,
             "hora_salida": a.hora_salida,
             "horas_trabajadas": float(a.horas_trabajadas) if a.horas_trabajadas else None,
-            "actividades": reporte.actividades_realizadas if reporte else "",
-            "estado": reporte.estado if reporte else "SIN REPORTE",
+            "horas_acumuladas": round(acumulado, 2) if a.horas_trabajadas else round(acumulado, 2),
+            "detalle": "Con reporte" if reporte else "Sin reporte",
         })
+        
+        if reporte and reporte.actividades_realizadas:
+            dia_str = cur.strftime("%d/%m")
+            textos_semana.append(f"• [{dia_str}]: {reporte.actividades_realizadas}")
+            
+        cur = cur + timedelta(days=1)
+
+    titulo = f"Reporte semanal · Semana {semana}: {primer_dia.strftime('%d/%m')} al {ultimo_dia.strftime('%d/%m/%Y')}"
+    texto_consolidado = "\n".join(textos_semana) if textos_semana else "No se registraron reportes de actividades en esta semana."
+    
+    buf = generar_reporte_semanal(pasante_data, filas, titulo, texto_reporte=texto_consolidado)
+
+    nombre_archivo = f"Reporte_Semanal_Sem{semana}_{anio}_{pasante_data['nombres'].split()[0]}.pdf"
+    
+    return StreamingResponse(
+        buf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{nombre_archivo}"'}
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────
+# GET /admin/pdf/mensual/{pasante_id} — ADMINISTRADOR y ENCARGADO
+# ─────────────────────────────────────────────────────────────────────────
+@router.get("/admin/pdf/mensual/{pasante_id}")
+def admin_descargar_pdf_mensual(
+    pasante_id: int,
+    anio: int,
+    mes: int,
+    db: Session = Depends(get_db),
+    usuario_actual: Usuario = Depends(rol_requerido(["ADMINISTRADOR", "ENCARGADO"]))
+):
+    pasante_db = db.query(Usuario).filter(Usuario.id == pasante_id).first()
+    if not pasante_db:
+        raise HTTPException(404, detail="Pasante no encontrado.")
+
+    primer_dia = date(anio, mes, 1)
+    ultimo_dia = date(anio, mes, calendar.monthrange(anio, mes)[1])
+
+    asistencias = (
+        db.query(AsistenciaModel)
+        .filter(
+            AsistenciaModel.pasante_id == pasante_db.id,
+            AsistenciaModel.fecha >= primer_dia,
+            AsistenciaModel.fecha <= ultimo_dia,
+        )
+        .order_by(AsistenciaModel.fecha)
+        .all()
+    )
+
+    carrera_nombre = pasante_db.carrera.nombre if hasattr(pasante_db, "carrera") and pasante_db.carrera else "—"
+
+    pasante_data = {
+        "nombres":  pasante_db.nombres,
+        "apellidos": pasante_db.apellidos,
+        "ci":       getattr(pasante_db, "carnet_identidad", "—"),
+        "ru":       getattr(pasante_db, "ru", "—"),
+        "unidad_asignada": getattr(pasante_db, "unidad_asignada", "—"),
+        "username": pasante_db.username,
+        "carrera":  carrera_nombre,
+        "proyecto": getattr(pasante_db, "proyecto_nombre", None),
+    }
+
+    asistencias_por_fecha = {}
+    for a in asistencias:
+        f = a.fecha.date() if hasattr(a.fecha, "date") else a.fecha
+        asistencias_por_fecha[f] = a
+
+    filas = []
+    acumulado = 0.0
+    textos_mes = []
+    cur = primer_dia
+    
+    while cur <= ultimo_dia:
+        if cur.weekday() < 5:  # Lunes a Viernes
+            a = asistencias_por_fecha.get(cur)
+            if not a:
+                filas.append({
+                    "fecha": cur,
+                    "hora_entrada": None,
+                    "hora_salida": None,
+                    "horas_trabajadas": None,
+                    "horas_acumuladas": round(acumulado, 2),
+                    "detalle": "Sin asistencia",
+                })
+            else:
+                reporte = db.query(Reporte).filter(Reporte.asistencia_id == a.id).first()
+                horas_dia = float(a.horas_trabajadas) if a.horas_trabajadas else 0.0
+                acumulado = acumulado + horas_dia
+                
+                filas.append({
+                    "fecha": a.fecha.date() if hasattr(a.fecha, "date") else a.fecha,
+                    "hora_entrada": a.hora_entrada,
+                    "hora_salida": a.hora_salida,
+                    "horas_trabajadas": float(a.horas_trabajadas) if a.horas_trabajadas else None,
+                    "horas_acumuladas": round(acumulado, 2) if a.horas_trabajadas else round(acumulado, 2),
+                    "detalle": "Con reporte" if reporte else "Sin reporte",
+                })
+                
+                if reporte and reporte.actividades_realizadas:
+                    dia_str = cur.strftime("%d/%m")
+                    textos_mes.append(f"• [{dia_str}]: {reporte.actividades_realizadas}")
+
         cur = cur + timedelta(days=1)
 
     meses_es = ["","Enero","Febrero","Marzo","Abril","Mayo","Junio",
                 "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"]
     titulo = f"{meses_es[mes]} {anio}"
-    buf = generar_reporte_mensual(pasante, filas, titulo)
+    texto_consolidado = "\n".join(textos_mes) if textos_mes else "No se registraron reportes de actividades en este mes."
+    
+    buf = generar_reporte_mensual(pasante_data, filas, titulo, texto_reporte=texto_consolidado)
 
-    nombre_archivo = (
-        f"Reporte_Mensual_{meses_es[mes]}{anio}_"
-        f"{usuario_actual.nombres.split()[0]}{usuario_actual.apellidos.split()[0]}.pdf"
-    )
+    nombre_archivo = f"Reporte_Mensual_{meses_es[mes]}{anio}_{pasante_data['nombres'].split()[0]}.pdf"
+    
     return StreamingResponse(
         buf,
         media_type="application/pdf",

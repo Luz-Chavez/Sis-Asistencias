@@ -221,10 +221,28 @@
               </div>
 
               <div>
+                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Programa de Pasantía</label>
+                <select v-if="requiereCarrera" v-model.number="formulario.programa_id" class="w-full border border-slate-300 rounded-xl p-3.5 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-200 text-sm font-bold text-blue-950 bg-slate-50 focus:bg-white transition-all">
+                  <option :value="null">Sin programa asignado</option>
+                  <option v-for="p in programas" :key="p.id" :value="p.id">{{ p.nombre }} - {{ p.gestion }}</option>
+                </select>
+                <input v-else type="text" value="N/A" disabled class="w-full border border-slate-200 rounded-xl p-3.5 bg-slate-100 text-slate-500 text-sm font-bold cursor-not-allowed"/>
+              </div>
+              <div>
                 <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Celular <span class="text-red-500">*</span></label>
                 <input v-model="formulario.celular" type="tel" required placeholder="70123456" class="w-full border border-slate-300 rounded-xl p-3.5 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-200 text-sm font-bold text-blue-950 bg-slate-50 focus:bg-white transition-all"/>
               </div>
+
               <div>
+                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Registro Univ. (RU)</label>
+                <input v-model="formulario.ru" type="text" placeholder="Ej. 1754321" class="w-full border border-slate-300 rounded-xl p-3.5 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-200 text-sm font-bold text-blue-950 bg-slate-50 focus:bg-white transition-all"/>
+              </div>
+              <div>
+                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Unidad Asignada</label>
+                <input v-model="formulario.unidad_asignada" type="text" placeholder="Ej. Biblioteca Central" class="w-full border border-slate-300 rounded-xl p-3.5 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-200 text-sm font-bold text-blue-950 bg-slate-50 focus:bg-white transition-all"/>
+              </div>
+              
+              <div class="col-span-1 md:col-span-2">
                 <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1 flex justify-between">
                   Contraseña de Acceso
                   <span v-if="isEditing" class="text-[9px] bg-red-100 text-red-600 px-1.5 rounded uppercase tracking-wider">Vacío = Mantener actual</span>
@@ -272,6 +290,7 @@ const isSubmitting = ref(false)
 const mensajeError = ref('')
 
 const carreras  = ref([])
+const programas = ref([])
 
 const requiereCarrera = computed(() => {
   const rolId = Number(formulario.value.rol_id)
@@ -330,7 +349,7 @@ const rolBadgeClass = (rol) => {
 }
 
 onMounted(async () => {
-  await Promise.all([cargarUsuarios(), cargarCarreras()])
+  await Promise.all([cargarUsuarios(), cargarCarreras(), cargarProgramas()])
 })
 
 const cargarUsuarios = async () => {
@@ -338,20 +357,45 @@ const cargarUsuarios = async () => {
   try { const res = await api.get('/usuarios/listar'); usuarios.value = res.data }
   finally { isLoading.value = false }
 }
+
 const cargarCarreras = async () => {
   try { const res = await api.get('/carreras/'); carreras.value = res.data || [] } catch (e) {}
 }
 
+const cargarProgramas = async () => {
+  try { const res = await api.get('/programas/listar'); programas.value = res.data || [] } catch (e) {}
+}
+
 const abrirModalCrear = () => {
   isEditing.value  = false; idEditando.value = null
-  formulario.value = { nombres: '', apellidos: '', carnet_identidad: '', ru: '', unidad_asignada: '', programa_id: null, meta_horas_pasantia: 240, email: '', celular: '', password: '', rol_id: 3, carrera_id: null }
+  formulario.value = { 
+    nombres: '', apellidos: '', carnet_identidad: '', 
+    ru: '', unidad_asignada: '', programa_id: null, 
+    meta_horas_pasantia: 240, email: '', celular: '', 
+    password: '', rol_id: 3, carrera_id: null 
+  }
   mensajeError.value = ''; showModal.value = true
 }
 
 const abrirModalEditar = (usuario) => {
   isEditing.value  = true; idEditando.value = usuario.id
   let rId = 3; if(usuario.rol === 'ADMINISTRADOR') rId=1; if(usuario.rol === 'ENCARGADO') rId=2;
-  formulario.value = { nombres: usuario.nombres, apellidos: usuario.apellidos, carnet_identidad: usuario.carnet_identidad, ru: usuario.ru || '', unidad_asignada: usuario.unidad_asignada || '', programa_id: usuario.programa_id ?? null, meta_horas_pasantia: Number(usuario.meta_horas_pasantia ?? 240), email: usuario.email, celular: usuario.celular || '', password: '', rol_id: rId, carrera_id: usuario.carrera_id, rol_nombre: usuario.rol }
+  
+  formulario.value = { 
+    nombres: usuario.nombres, 
+    apellidos: usuario.apellidos, 
+    carnet_identidad: usuario.carnet_identidad, 
+    ru: usuario.ru || '', 
+    unidad_asignada: usuario.unidad_asignada || '', 
+    programa_id: usuario.programa_id ?? null, 
+    meta_horas_pasantia: Number(usuario.meta_horas_pasantia ?? 240), 
+    email: usuario.email, 
+    celular: usuario.celular || '', 
+    password: '', 
+    rol_id: rId, 
+    carrera_id: usuario.carrera_id, 
+    rol_nombre: usuario.rol 
+  }
   mensajeError.value = ''; showModal.value = true
 }
 
@@ -361,16 +405,30 @@ const guardarUsuario = async () => {
   isSubmitting.value = true; mensajeError.value = ''
   try {
     if (requiereCarrera.value && !formulario.value.carrera_id) { mensajeError.value = 'Selecciona una carrera.'; return }
+    
     if (isEditing.value) {
-      const payload = { nombres: formulario.value.nombres, apellidos: formulario.value.apellidos, carnet_identidad: formulario.value.carnet_identidad, email: formulario.value.email, celular: formulario.value.celular, carrera_id: formulario.value.carrera_id || null }
+      const payload = { 
+        nombres: formulario.value.nombres, 
+        apellidos: formulario.value.apellidos, 
+        carnet_identidad: formulario.value.carnet_identidad, 
+        email: formulario.value.email, 
+        celular: formulario.value.celular, 
+        carrera_id: formulario.value.carrera_id || null,
+        ru: formulario.value.ru,
+        unidad_asignada: formulario.value.unidad_asignada,
+        programa_id: formulario.value.programa_id || null
+      }
       if (formulario.value.password) payload.password = formulario.value.password
       await api.put(`/usuarios/editar/${idEditando.value}`, payload)
     } else {
-      const datos = { ...formulario.value }; delete datos.rol_nombre; if (!datos.carrera_id) datos.carrera_id = null;
+      const datos = { ...formulario.value }; 
+      delete datos.rol_nombre; 
+      if (!datos.carrera_id) datos.carrera_id = null;
+      if (!datos.programa_id) datos.programa_id = null;
       await api.post('/usuarios/registro', datos)
     }
     cerrarModal(); await cargarUsuarios()
-  } catch (error) { mensajeError.value = error.response?.data?.detail || 'Error al procesar.' }
+  } catch (error) { mensajeError.value = error.response?.data?.detail || 'Error al procesar la solicitud.' }
   finally { isSubmitting.value = false }
 }
 
@@ -379,5 +437,6 @@ const confirmarCambioEstado = async (usuario) => {
     try { await api.put(`/usuarios/editar/${usuario.id}`, { estado: !usuario.estado }); await cargarUsuarios() } catch (error) {}
   }
 }
+
 const cerrarSesion = () => { authStore.logout(); router.push('/login') }
 </script>
