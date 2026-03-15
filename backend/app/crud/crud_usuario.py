@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+<<<<<<< HEAD
 from sqlalchemy import func
 from app.models.usuario import Usuario
 from app.models.carrera import Rol
@@ -47,10 +48,24 @@ def crear_usuario(db: Session, usuario: UsuarioCreate):
     # ✅ Generamos el username automáticamente
     username = generar_username(usuario.nombres, usuario.apellidos, usuario.carnet_identidad)
 
+=======
+from app.models.usuario import Usuario
+from app.schemas.usuario_schema import UsuarioCreate
+from app.core.security import obtener_password_hash
+from app.schemas.usuario_schema import UsuarioCreate, UsuarioUpdate 
+
+def obtener_usuario_por_email(db: Session, email: str):
+    return db.query(Usuario).filter(Usuario.email == email).first()
+
+def crear_usuario(db: Session, usuario: UsuarioCreate):
+    password_encriptada = obtener_password_hash(usuario.password)
+    
+>>>>>>> 01ae768219e574b7569fd6ef9d0968c847a4bb32
     db_usuario = Usuario(
         nombres=usuario.nombres,
         apellidos=usuario.apellidos,
         carnet_identidad=usuario.carnet_identidad,
+<<<<<<< HEAD
         ru=usuario.ru,
         unidad_asignada=usuario.unidad_asignada,
         username=username,
@@ -59,6 +74,9 @@ def crear_usuario(db: Session, usuario: UsuarioCreate):
         proyecto_nombre=(usuario.proyecto_nombre.strip() if usuario.proyecto_nombre else None),
         meta_horas_pasantia=(usuario.meta_horas_pasantia if usuario.meta_horas_pasantia is not None else 240),
         programa_id=(usuario.programa_id if getattr(usuario, "programa_id", None) is not None else None),
+=======
+        email=usuario.email,
+>>>>>>> 01ae768219e574b7569fd6ef9d0968c847a4bb32
         password_hash=password_encriptada,
         rol_id=usuario.rol_id,
         carrera_id=usuario.carrera_id
@@ -68,6 +86,7 @@ def crear_usuario(db: Session, usuario: UsuarioCreate):
     db.refresh(db_usuario)
     return db_usuario
 
+<<<<<<< HEAD
 
 def obtener_usuarios(db: Session, skip: int = 0, limit: int = 100, carrera_id: int = None):
     query = db.query(Usuario)
@@ -101,8 +120,36 @@ def actualizar_usuario(db: Session, usuario_id: int, datos_actualizar: UsuarioUp
     for key, value in update_data.items():
         if key == "email" and value is not None:
             value = str(value).strip().lower()
+=======
+def obtener_usuarios(db: Session, skip: int = 0, limit: int = 100, carrera_id: int = None):
+    query = db.query(Usuario)
+    if carrera_id:
+        query = query.filter(Usuario.carrera_id == carrera_id)
+    return query.offset(skip).limit(limit).all()
+
+def desactivar_usuario(db: Session, usuario_id: int):
+    usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
+    if usuario:
+        usuario.estado = False 
+        db.commit()
+    return usuario
+
+def actualizar_usuario(db: Session, usuario_id: int, datos_actualizar: UsuarioUpdate):
+    usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
+    
+    if not usuario:
+        return None 
+
+    update_data = datos_actualizar.model_dump(exclude_unset=True)
+    
+    for key, value in update_data.items():
+>>>>>>> 01ae768219e574b7569fd6ef9d0968c847a4bb32
         setattr(usuario, key, value)
 
     db.commit()
     db.refresh(usuario)
+<<<<<<< HEAD
     return usuario
+=======
+    return usuario
+>>>>>>> 01ae768219e574b7569fd6ef9d0968c847a4bb32

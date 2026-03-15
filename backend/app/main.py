@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -50,11 +51,21 @@ from app.models.notificacion_pasantia import NotificacionPasantia  # noqa: F401
 from app.models.reporte_historial import ReporteEstadoHistorial  # noqa: F401
 from app.models.password_reset_token import PasswordResetToken  # noqa: F401
 from app.core.security import obtener_password_hash
+=======
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from app.api.v1 import rutas_usuarios, rutas_asistencias
+from app.db.database import engine, Base
+from app.api.v1 import rutas_usuarios, rutas_asistencias, rutas_reportes
+
+from fastapi.middleware.cors import CORSMiddleware
+>>>>>>> 01ae768219e574b7569fd6ef9d0968c847a4bb32
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Sistema de Control de Asistencia - Facultad de Ciencias Sociales",
+<<<<<<< HEAD
     description="API con FastAPI, PostgreSQL y JWT para la gestiÃ³n de pasantes.",
     version="2.0.0"
 )
@@ -156,11 +167,34 @@ def _crear_admin_por_defecto(db: Session):
     print("     âš ï¸  Â¡CÃ¡mbiala en producciÃ³n!")
     print("=" * 55)
 
+=======
+    description="API robusta con FastAPI, PostgreSQL y JWT para la gestión de pasantes, directores y decanatura.",
+    version="1.0.0"
+)
+
+origenes_permitidos = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origenes_permitidos,
+    allow_credentials=True,
+    allow_methods=["*"],  
+    allow_headers=["*"],  
+)
+
+app.include_router(rutas_usuarios.router, prefix="/api/v1/usuarios", tags=["Usuarios y Autenticación"])
+app.include_router(rutas_asistencias.router, prefix="/api/v1/asistencias", tags=["Control de Asistencia"])
+app.include_router(rutas_reportes.router, prefix="/api/v1/reportes", tags=["Reportes Diarios"]) # <-- LÍNEA NUEVA
+>>>>>>> 01ae768219e574b7569fd6ef9d0968c847a4bb32
 
 @app.get("/", tags=["Inicio"])
 def read_root():
     return {
         "estado": "Online",
+<<<<<<< HEAD
         "mensaje": "Bienvenido al Sistema de Control de Asistencia. Visita /docs para la documentaciÃ³n."
     }
 
@@ -168,3 +202,17 @@ def read_root():
 
 
 
+=======
+        "mensaje": "Bienvenido a la API del Sistema de Control de Asistencia. Visita /docs para la documentación interactiva."
+    }
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"], 
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["Content-Disposition"],
+)
+>>>>>>> 01ae768219e574b7569fd6ef9d0968c847a4bb32

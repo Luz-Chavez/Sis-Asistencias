@@ -10,6 +10,7 @@ class Asistencia(Base):
     pasante_id = Column(Integer, ForeignKey("usuarios.id", ondelete="CASCADE"))
     fecha = Column(DateTime, nullable=False)
     hora_entrada = Column(DateTime(timezone=True), nullable=False)
+<<<<<<< HEAD
 
     # ✅ GPS opcional — puede ser None si se ficha desde la pantalla pública
     latitud_entrada  = Column(DECIMAL(10, 8), nullable=True)
@@ -18,16 +19,28 @@ class Asistencia(Base):
     hora_salida      = Column(DateTime(timezone=True), nullable=True)
     latitud_salida   = Column(DECIMAL(10, 8), nullable=True)
     longitud_salida  = Column(DECIMAL(11, 8), nullable=True)
+=======
+    latitud_entrada = Column(DECIMAL(10, 8), nullable=False)
+    longitud_entrada = Column(DECIMAL(11, 8), nullable=False)
+    
+    hora_salida = Column(DateTime(timezone=True), nullable=True)
+    latitud_salida = Column(DECIMAL(10, 8), nullable=True)
+    longitud_salida = Column(DECIMAL(11, 8), nullable=True)
+>>>>>>> 01ae768219e574b7569fd6ef9d0968c847a4bb32
     horas_trabajadas = Column(DECIMAL(5, 2), nullable=True)
 
     pasante = relationship("Usuario", back_populates="asistencias")
     reporte = relationship("Reporte", back_populates="asistencia", uselist=False)
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 01ae768219e574b7569fd6ef9d0968c847a4bb32
 class Reporte(Base):
     __tablename__ = "reportes"
 
     id = Column(Integer, primary_key=True, index=True)
+<<<<<<< HEAD
     asistencia_id        = Column(Integer, ForeignKey("asistencias.id", ondelete="CASCADE"), unique=True)
     actividades_realizadas = Column(Text, nullable=False)
     archivo_adjunto_url  = Column(String(255), nullable=True)
@@ -44,3 +57,15 @@ class Reporte(Base):
     creado_en            = Column(DateTime(timezone=True), server_default=func.now())
 
     asistencia = relationship("Asistencia", back_populates="reporte")
+=======
+    asistencia_id = Column(Integer, ForeignKey("asistencias.id", ondelete="CASCADE"), unique=True)
+    actividades_realizadas = Column(Text, nullable=False)
+    archivo_adjunto_url = Column(String(255), nullable=True)
+    estado = Column(String(20), default="PENDIENTE")
+    comentarios_director = Column(Text, nullable=True)
+    revisado_por = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
+
+    creado_en = Column(DateTime(timezone=True), server_default=func.now())
+
+    asistencia = relationship("Asistencia", back_populates="reporte")
+>>>>>>> 01ae768219e574b7569fd6ef9d0968c847a4bb32

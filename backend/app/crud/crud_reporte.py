@@ -1,8 +1,14 @@
+<<<<<<< HEAD
 from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from app.models.asistencia import Reporte, Asistencia
 from app.models.usuario import Usuario
 from app.models.reporte_historial import ReporteEstadoHistorial
+=======
+from sqlalchemy.orm import Session
+from app.models.asistencia import Reporte, Asistencia
+from app.models.usuario import Usuario
+>>>>>>> 01ae768219e574b7569fd6ef9d0968c847a4bb32
 from app.schemas.reporte_schema import ReporteCreate, ReporteEvaluar
 
 def crear_reporte(db: Session, reporte: ReporteCreate):
@@ -16,6 +22,7 @@ def crear_reporte(db: Session, reporte: ReporteCreate):
     db.refresh(db_reporte)
     return db_reporte
 
+<<<<<<< HEAD
 # def obtener_reportes(db: Session, carrera_id: int = None):
 #     query = db.query(Reporte)
 #     if carrera_id:
@@ -103,3 +110,20 @@ def obtener_historial_reporte(db: Session, reporte_id: int):
         resultado.append(item)
         
     return resultado
+=======
+def obtener_reportes(db: Session, carrera_id: int = None):
+    query = db.query(Reporte)
+    if carrera_id:
+        query = query.join(Asistencia).join(Usuario).filter(Usuario.carrera_id == carrera_id)
+    return query.all()
+
+def evaluar_reporte(db: Session, reporte_id: int, evaluacion: ReporteEvaluar, revisado_por_id: int):
+    db_reporte = db.query(Reporte).filter(Reporte.id == reporte_id).first()
+    if db_reporte:
+        db_reporte.estado = evaluacion.estado
+        db_reporte.comentarios_director = evaluacion.comentarios_director
+        db_reporte.revisado_por = revisado_por_id
+        db.commit()
+        db.refresh(db_reporte)
+    return db_reporte
+>>>>>>> 01ae768219e574b7569fd6ef9d0968c847a4bb32

@@ -1,10 +1,18 @@
+<<<<<<< HEAD
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, Numeric
+=======
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime
+>>>>>>> 01ae768219e574b7569fd6ef9d0968c847a4bb32
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.db.database import Base
 
+<<<<<<< HEAD
 from app.models.carrera import Rol, Carrera
 
+=======
+from app.models.carrera import Rol, Carrera 
+>>>>>>> 01ae768219e574b7569fd6ef9d0968c847a4bb32
 
 class Usuario(Base):
     __tablename__ = "usuarios"
@@ -13,6 +21,7 @@ class Usuario(Base):
     nombres = Column(String(100), nullable=False)
     apellidos = Column(String(100), nullable=False)
     carnet_identidad = Column(String(20), unique=True, index=True, nullable=False)
+<<<<<<< HEAD
     ru = Column(String(30), index=True, nullable=True)  # Registro Universitario (RU)
     unidad_asignada = Column(String(150), nullable=True)
     # ✅ NUEVO: username generado automáticamente (1ra inicial nombre + 1ra inicial apellido + CI)
@@ -26,6 +35,9 @@ class Usuario(Base):
 
     programa_id = Column(Integer, ForeignKey("programas_pasantia.id"), nullable=True)
 
+=======
+    email = Column(String(100), unique=True, index=True, nullable=False)
+>>>>>>> 01ae768219e574b7569fd6ef9d0968c847a4bb32
     password_hash = Column(String(255), nullable=False)
     rol_id = Column(Integer, ForeignKey("roles.id"))
     carrera_id = Column(Integer, ForeignKey("carreras.id"), nullable=True)
@@ -34,5 +46,9 @@ class Usuario(Base):
 
     rol = relationship("Rol")
     carrera = relationship("Carrera")
+<<<<<<< HEAD
     programa = relationship("ProgramaPasantia")
     asistencias = relationship("Asistencia", back_populates="pasante")
+=======
+    asistencias = relationship("Asistencia", back_populates="pasante")
+>>>>>>> 01ae768219e574b7569fd6ef9d0968c847a4bb32

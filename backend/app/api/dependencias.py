@@ -2,13 +2,17 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from sqlalchemy.orm import Session
+<<<<<<< HEAD
 from sqlalchemy import func
+=======
+>>>>>>> 01ae768219e574b7569fd6ef9d0968c847a4bb32
 from app.db.database import get_db
 from app.models.usuario import Usuario
 from app.core.security import SECRET_KEY, ALGORITHM
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/usuarios/login")
 
+<<<<<<< HEAD
 # ──────────────────────────────────────────────
 # Roles disponibles en el sistema:
 #   ADMINISTRADOR → acceso total, CRUD completo
@@ -21,6 +25,9 @@ def obtener_usuario_actual(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db)
 ):
+=======
+def obtener_usuario_actual(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+>>>>>>> 01ae768219e574b7569fd6ef9d0968c847a4bb32
     credenciales_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="No se pudieron validar las credenciales",
@@ -31,15 +38,23 @@ def obtener_usuario_actual(
         email: str = payload.get("sub")
         if email is None:
             raise credenciales_exception
+<<<<<<< HEAD
         email = str(email).strip().lower()
     except JWTError:
         raise credenciales_exception
 
     usuario = db.query(Usuario).filter(func.lower(Usuario.email) == email).first()
+=======
+    except JWTError:
+        raise credenciales_exception
+        
+    usuario = db.query(Usuario).filter(Usuario.email == email).first()
+>>>>>>> 01ae768219e574b7569fd6ef9d0968c847a4bb32
     if usuario is None:
         raise credenciales_exception
     return usuario
 
+<<<<<<< HEAD
 
 def rol_requerido(roles_permitidos: list[str]):
     """
@@ -49,6 +64,12 @@ def rol_requerido(roles_permitidos: list[str]):
     def verificador_roles(usuario_actual: Usuario = Depends(obtener_usuario_actual)):
         nombre_rol = getattr(usuario_actual.rol, "nombre", None)
         if nombre_rol not in roles_permitidos:
+=======
+def rol_requerido(roles_permitidos: list[str]):
+    def verificador_roles(usuario_actual: Usuario = Depends(obtener_usuario_actual)):
+        
+        if usuario_actual.rol.nombre not in roles_permitidos:
+>>>>>>> 01ae768219e574b7569fd6ef9d0968c847a4bb32
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="No tienes los permisos necesarios para realizar esta acción"
