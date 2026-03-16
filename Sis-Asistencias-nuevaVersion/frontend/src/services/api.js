@@ -1,6 +1,9 @@
 import axios from 'axios'
 
-export const API_BASE_URL = 'http://192.168.0.50:8000/api/v1'
+// Ajustar la URL del backend según el entorno.
+// Puedes definirla en un archivo .env (Vite requiere prefijo VITE_):
+//   VITE_API_BASE_URL=http://localhost:8000/api/v1
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1'
 export const API_ORIGIN = new URL(API_BASE_URL).origin
 
 const api = axios.create({
